@@ -15,7 +15,7 @@ function exit_err() {
 export -f exit_err
 
 function real_dir() {
-    path=$(realpath -e $1) || return $?
+    local path=$(realpath -e $1) || return $?
     if [ ! -d "$path" ];then
         exit_err "'$1' is not a directory"
     fi
@@ -25,7 +25,7 @@ function real_dir() {
 export -f real_dir
 
 function real_file() {
-    path=$(realpath -e $1) || return $?
+    local path=$(realpath -e $1) || return $?
     if [ ! -f "$path" ];then
         exit_err "'$1' is not a file"
     fi
