@@ -33,9 +33,9 @@ function log_err() {
 }
 export -f log_err
 
-function require_args() {
+function require_arg() {
     if [ "$#" -ne 1 ]; then
-        log_err "Usage: required_args <ARG_NAME>" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: require_arg <ARG_NAME>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     if [ -z ${!1} ]; then
@@ -43,7 +43,7 @@ function require_args() {
     fi
     return ${LIBSHELL_DEFAULT_OK}
 }
-export -f required_args
+export -f require_arg
 
 function real_dir() {
     if [ "$#" -ne 1 ]; then

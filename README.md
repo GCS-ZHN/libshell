@@ -10,6 +10,6 @@ Add it to `~/.bashrc` if you want use it globally.
 ```bash
 . lib.bash
 
-require_args arg_name||log_err 'arg_name not found'
+require_arg arg_name||log_err 'arg_name not found'
 
 ```
