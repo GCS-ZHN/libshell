@@ -20,21 +20,22 @@ function is_source() {
     return $?
 }
 
-function exit_err() {
+function log_err() {
+    local default_exit_code=$?
     if [ "$#" -lt 1 ]; then
-        exit_err "Usage: exit_err <ERR_MSG> [EXIT_CODE]" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: log_err <ERR_MSG> [EXIT_CODE]" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     err_msg=$1
-    exit_code=${2:-${LIBSHELL_DEFAULT_ERR}}
+    exit_code=${2:-${default_exit_code}}
     echo -e "$err_msg" >&2
     return $exit_code
 }
-export -f exit_err
+export -f log_err
 
 function required_args() {
     if [ "$#" -ne 1 ]; then
-        exit_err "Usage: required_args <ARG_NAME>" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: required_args <ARG_NAME>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     local arg_name=$1
@@ -47,12 +48,12 @@ export -f required_args
 
 function real_dir() {
     if [ "$#" -ne 1 ]; then
-        exit_err "Usage: real_dir <DIR_PATH>" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: real_dir <DIR_PATH>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     local path=$(realpath -e $1) || return $?
     if [ ! -d "$path" ];then
-        exit_err "'$1' is not a directory" ${LIBSHELL_FILE_TYPE_ERR}
+        log_err "'$1' is not a directory" ${LIBSHELL_FILE_TYPE_ERR}
         return $?
     fi
     echo $path
@@ -62,12 +63,12 @@ export -f real_dir
 
 function real_file() {
     if [ "$#" -ne 1 ]; then
-        exit_err "Usage: real_file <FILE_PATH>" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: real_file <FILE_PATH>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     local path=$(realpath -e $1) || return $?
     if [ ! -f "$path" ];then
-        exit_err "'$1' is not a file" ${LIBSHELL_FILE_TYPE_ERR}
+        log_err "'$1' is not a file" ${LIBSHELL_FILE_TYPE_ERR}
         return $?
     fi
     echo $path
@@ -78,18 +79,18 @@ export -f real_file
 
 function conda_mv() {
     if [ "$#" -ne 2 ]; then
-        exit_err "Usage: conda_mv <OLD_CONDA_NAME> <NEW_CONDA_NAME>" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: conda_mv <OLD_CONDA_NAME> <NEW_CONDA_NAME>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     local old_conda_home=$(real_dir $1)
     local new_conda_home=$(realpath $2)
     if [ -e $new_conda_home ]; then
-        exit_err "target path should not be existed!" ${LIBSHELL_FILE_EXISTED}
+        log_err "target path should not be existed!" ${LIBSHELL_FILE_EXISTED}
         return $?
     fi
     rsync -av $old_conda_home/ $new_conda_home/
     if [ $? -ne 0 ]; then
-        exit_err "Copy conda home failed!" ${LIBSHELL_FILE_IO_ERR}
+        log_err "Copy conda home failed!" ${LIBSHELL_FILE_IO_ERR}
         return $?
     fi
     find $new_conda_home -type f \
@@ -97,7 +98,7 @@ function conda_mv() {
                          -exec sed -i "s|$old_conda_home|$new_conda_home|g" {} \; -and \
                          -print
     if [ $? -ne 0 ]; then
-        exit_err "Update conda prefix failed!"
+        log_err "Update conda prefix failed!"
         return $?
     fi
     rm -rf $old_conda_home
@@ -107,7 +108,7 @@ export -f conda_mv
 
 function prepend_path() {
     if [ "$#" -lt 2 ]; then
-        exit_err "Usage: prepend_path <VAR_NAME> <PATH> [SEPARATOR]" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: prepend_path <VAR_NAME> <PATH> [SEPARATOR]" ${LIBSHELL_ARG_ERR}
         return $?
     fi
     local var_name=$1
@@ -128,7 +129,7 @@ export -f prepend_path
 
 
 if is_source; then
-    exit_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
+    log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
-    exit_err 'LibShell is library, you should source it by `. lib.bash` or `source lib.bash`'
+    log_err 'LibShell is library, you should source it by `. lib.bash` or `source lib.bash`'
 fi
