@@ -33,3 +33,25 @@ function real_file() {
     return 0
 }
 export -f real_file
+
+
+function conda_mv() {
+    local old_conda_home=$(real_dir $1)
+    local new_conda_home=$(realpath $2)
+    if [ -e $new_conda_home ]; then
+        exit_err "target path should not be existed!"
+    fi
+    rsync -av $old_conda_home/ $new_conda_home/
+    if [ $? -ne 0 ]; then
+        exit_err "Copy conda home failed!"
+    fi
+    find $new_conda_home -type f \
+                         -exec grep -Iq . {} \; -and \
+                         -exec sed -i "s|$old_conda_home|$new_conda_home|g" {} \; -and \
+                         -print
+    if [ $? -ne 0 ]; then
+        exit_err "Update conda prefix failed!"
+    fi
+    rm -rf $old_conda_home
+}
+export -f conda_mv
