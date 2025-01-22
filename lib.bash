@@ -1,18 +1,37 @@
 # a shell module for general operations
 
-function required_args() {
-    if [ -z "$1" ]; then
-        return 1
-    fi
-    return 0
+SHELL_NAME=$(basename $(ps -p $$ -o comm=))
+
+if [ ${SHELL_NAME} != 'bash' ]; then
+    echo "Current shell '${SHELL_NAME}' is not supported!"
+    return 1
+fi
+
+function is_source() {
+    [ ${BASH_SOURCE[0]} != ${0} ]
+    return $?
 }
-export -f required_args
+export -f is_source
 
 function exit_err() {
     echo $1 >&2
     return 1
 }
 export -f exit_err
+
+function required_args() {
+    if [ "$#" -lt 1 ]; then
+        exit_err "Usage: required_args <ARG_NAME>"
+        return $?
+    fi
+    local arg_name=$1
+    echo ${arg_name}
+    if [ -z ${!arg_name} ]; then
+        return 1
+    fi
+    return 0
+}
+export -f required_args
 
 function real_dir() {
     local path=$(realpath -e $1) || return $?
