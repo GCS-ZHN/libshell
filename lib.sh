@@ -10,7 +10,7 @@ export -f required_args
 
 function exit_err() {
     echo $1 >&2
-    exit 1
+    return 1
 }
 export -f exit_err
 
@@ -18,6 +18,7 @@ function real_dir() {
     local path=$(realpath -e $1) || return $?
     if [ ! -d "$path" ];then
         exit_err "'$1' is not a directory"
+        return $?
     fi
     echo $path
     return 0
@@ -28,6 +29,7 @@ function real_file() {
     local path=$(realpath -e $1) || return $?
     if [ ! -f "$path" ];then
         exit_err "'$1' is not a file"
+        return $?
     fi
     echo $path
     return 0
@@ -40,10 +42,12 @@ function conda_mv() {
     local new_conda_home=$(realpath $2)
     if [ -e $new_conda_home ]; then
         exit_err "target path should not be existed!"
+        return $?
     fi
     rsync -av $old_conda_home/ $new_conda_home/
     if [ $? -ne 0 ]; then
         exit_err "Copy conda home failed!"
+        return $?
     fi
     find $new_conda_home -type f \
                          -exec grep -Iq . {} \; -and \
@@ -51,7 +55,30 @@ function conda_mv() {
                          -print
     if [ $? -ne 0 ]; then
         exit_err "Update conda prefix failed!"
+        return $?
     fi
     rm -rf $old_conda_home
 }
 export -f conda_mv
+
+
+function prepend_path() {
+    if [ "$#" -lt 2 ]; then
+        exit_err "Usage: prepend_path VAR_NAME PATH [SEPARATOR]"
+        return $?
+    fi
+    local var_name=$1
+    local new_path=$2
+    local separator=${3:-:}
+
+    local current_value=${!var_name}
+    if [ -z $current_value ]; then
+        export $var_name=$new_path
+    elif perl -e "exit (grep{\$_ eq '$new_path'} (split /$separator/, '$current_value'))"; then
+        export $var_name=$new_path$separator$current_value
+    else
+        export $var_name=$current_value
+    fi
+    return 0
+}
+export -f prepend_path
