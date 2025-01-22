@@ -33,13 +33,12 @@ function log_err() {
 }
 export -f log_err
 
-function required_args() {
+function require_args() {
     if [ "$#" -ne 1 ]; then
         log_err "Usage: required_args <ARG_NAME>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
-    local arg_name=$1
-    if [ -z ${!arg_name} ]; then
+    if [ -z ${!1} ]; then
         return ${LIBSHELL_ARG_ERR}
     fi
     return ${LIBSHELL_DEFAULT_OK}
@@ -114,6 +113,17 @@ function prepend_path() {
     local var_name=$1
     local new_path=$2
     local separator=${3:-:}
+
+    if [ ${var_name} == 'var_name' ]; then
+        log_err "'var_name' is reserved keyword, not allowed as variable name" ${LIBSHELL_ARG_ERR}
+        return $?
+    elif [ ${var_name} == 'new_path' ]; then
+        log_err "'new_path' is reserved keyword, not allowed as variable name" ${LIBSHELL_ARG_ERR}
+        return $?
+    elif [ ${var_name} == 'separator' ]; then
+        log_err "'separator' is reserved keyword, not allowed as variable name" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
 
     local current_value=${!var_name}
     if [ -z $current_value ]; then
