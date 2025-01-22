@@ -6,11 +6,13 @@ function required_args() {
     fi
     return 0
 }
+export -f required_args
 
 function exit_err() {
     echo $1 >&2
     exit 1
 }
+export -f exit_err
 
 function real_dir() {
     path=$(realpath -e $1) || return $?
@@ -20,6 +22,7 @@ function real_dir() {
     echo $path
     return 0
 }
+export -f real_dir
 
 function real_file() {
     path=$(realpath -e $1) || return $?
@@ -29,3 +32,4 @@ function real_file() {
     echo $path
     return 0
 }
+export -f real_file
