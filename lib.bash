@@ -138,6 +138,18 @@ function prepend_path() {
 export -f prepend_path
 
 
+function port_avail() {
+    if [ "$#" -ne 2 ]; then
+        log_err "Usage: port_avail <HOST> <PORT>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local remote_host=$1
+    local remote_port=$2
+    nc -z -w1 $remote_host $remote_port &> /dev/null
+}
+export -f port_avail
+
+
 if is_source; then
     log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
