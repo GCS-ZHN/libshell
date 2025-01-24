@@ -1,4 +1,9 @@
 # a shell module for general operations
+# if LIBSHELL_VERSION not defined
+if [ -z "$LIBSHELL_VERSION" ]; then
+
+export LIBSHELL_VERSION=1.0
+
 LIBSHELL_DEFAULT_OK=0
 LIBSHELL_DEFAULT_ERR=1
 LIBSHELL_ARG_ERR=2
@@ -19,6 +24,7 @@ function is_source() {
     [ ${BASH_SOURCE[0]} != ${0} ]
     return $?
 }
+export -f is_source
 
 function log_err() {
     local default_exit_code=$?
@@ -154,4 +160,6 @@ if is_source; then
     log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
     log_err 'LibShell is library, you should source it by `. lib.bash` or `source lib.bash`'
+fi
+
 fi
