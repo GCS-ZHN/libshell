@@ -158,35 +158,35 @@ export -f port_avail
 
 
 # download vscode extension file
-function fetch_vsix() {
-    local extension_id=$1
-    local version=$2
+# function fetch_vsix() {
+#     local extension_id=$1
+#     local version=$2
 
-    if [ "$#" -ne 2 ]; then
-        log_err "Usage: fetch_vsix <EXTENSION_ID> <VERSION>" ${LIBSHELL_ARG_ERR}
-        return $?
-    fi
+#     if [ "$#" -ne 2 ]; then
+#         log_err "Usage: fetch_vsix <EXTENSION_ID> <VERSION>" ${LIBSHELL_ARG_ERR}
+#         return $?
+#     fi
 
-    local publisher=${extension_id%.*}
-    local extension=${extension_id#*.}
+#     local publisher=${extension_id%.*}
+#     local extension=${extension_id#*.}
 
-    local download_url="https://marketplace.visualstudio.com/_apis/public/gallery/publishers/$publisher/vsextensions/$extension/$version/vspackage"
+#     local download_url="https://marketplace.visualstudio.com/_apis/public/gallery/publishers/$publisher/vsextensions/$extension/$version/vspackage"
+#     echo $download_url
+#     local output_file="${publisher}-${extension}-${version}.vsix"
 
-    local output_file="${publisher}-${extension}-${version}.vsix"
+#     # 使用 curl 下载文件
+#     echo "正在下载扩展：${extension_id} 版本：${version}"
+#     curl -o "$output_file" "$download_url"
 
-    # 使用 curl 下载文件
-    echo "正在下载扩展：${extension_id} 版本：${version}"
-    curl -o "$output_file" "$download_url"
-
-    # 检查下载是否成功
-    if [[ $? -eq 0 ]]; then
-        echo "下载完成！文件已保存为：$output_file"
-    else
-        echo "下载失败，请检查扩展 ID 和版本号是否正确。"
-        return 1
-    fi
-}
-export -f fetch_vsix
+#     # 检查下载是否成功
+#     if [[ $? -eq 0 ]]; then
+#         echo "下载完成！文件已保存为：$output_file"
+#     else
+#         echo "下载失败，请检查扩展 ID 和版本号是否正确。"
+#         return 1
+#     fi
+# }
+# export -f fetch_vsix
 
 
 if is_source; then
