@@ -20,11 +20,13 @@ if [ ${SHELL_NAME} != 'bash' ]; then
     return $LIBSHELL_SHELL_NOT_SUPPORTED
 fi
 
+
 function is_source() {
     [ ${BASH_SOURCE[0]} != ${0} ]
     return $?
 }
 export -f is_source
+
 
 function log_err() {
     local default_exit_code=$?
@@ -39,6 +41,7 @@ function log_err() {
 }
 export -f log_err
 
+
 function require_arg() {
     if [ "$#" -ne 1 ]; then
         log_err "Usage: require_arg <ARG_NAME>" ${LIBSHELL_ARG_ERR}
@@ -50,6 +53,7 @@ function require_arg() {
     return ${LIBSHELL_DEFAULT_OK}
 }
 export -f require_arg
+
 
 function real_dir() {
     if [ "$#" -ne 1 ]; then
@@ -157,36 +161,28 @@ function port_avail() {
 export -f port_avail
 
 
-# download vscode extension file
-# function fetch_vsix() {
-#     local extension_id=$1
-#     local version=$2
-
-#     if [ "$#" -ne 2 ]; then
-#         log_err "Usage: fetch_vsix <EXTENSION_ID> <VERSION>" ${LIBSHELL_ARG_ERR}
-#         return $?
-#     fi
-
-#     local publisher=${extension_id%.*}
-#     local extension=${extension_id#*.}
-
-#     local download_url="https://marketplace.visualstudio.com/_apis/public/gallery/publishers/$publisher/vsextensions/$extension/$version/vspackage"
-#     echo $download_url
-#     local output_file="${publisher}-${extension}-${version}.vsix"
-
-#     # 使用 curl 下载文件
-#     echo "正在下载扩展：${extension_id} 版本：${version}"
-#     curl -o "$output_file" "$download_url"
-
-#     # 检查下载是否成功
-#     if [[ $? -eq 0 ]]; then
-#         echo "下载完成！文件已保存为：$output_file"
-#     else
-#         echo "下载失败，请检查扩展 ID 和版本号是否正确。"
-#         return 1
-#     fi
-# }
-# export -f fetch_vsix
+function create_link() {
+    # create_link to target path, if it point the same path
+    # just return it, otherwise, raise an error.
+    if [ "$#" -ne 2 ]; then
+        log_err "Usage: create_link <SOURCE> <TARGET>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local source=$1
+    local target=$2
+    if [ -L $target ]; then
+        local link_target=$(readlink $target)
+        if [ "$link_target" == "$source" ]; then
+            return ${LIBSHELL_DEFAULT_OK}
+        else
+            log_err "Link $target already exists and points to $link_target" ${LIBSHELL_LINK_ERR}
+            return $?
+        fi
+    fi
+    ln -s $source $target
+    return ${LIBSHELL_DEFAULT_OK}
+}
+export -f create_link
 
 
 if is_source; then
