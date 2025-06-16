@@ -185,6 +185,30 @@ function create_link() {
 export -f create_link
 
 
+function sbat() {
+    # a parsable slurm sbatch command
+    if [ "$#" -lt 1 ]; then
+        log_err "Usage: sbat [ARGS...] <SCRIPT> [ARGS...]" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    
+    # check if sbatch available
+    if ! command -v sbatch >/dev/null; then
+        log_err "Slurm sbatch not detected!" ${LIBSHELL_CMD_NOT_FOUND}
+    fi
+
+    job_id=$(sbatch --parsable $@)
+    if [ $? -ne 0 ]; then
+        log_err "Submit batch job failed" ${LIBSHELL_DEFAULT_ERR}
+        return $?
+    fi
+    
+    echo -e "Submitted batch job \033[32m$job_id\033[0m"
+    export PREV_SLURM_JOB_ID=$job_id
+}
+export -f sbat
+
+
 if is_source; then
     log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
