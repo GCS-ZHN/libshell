@@ -209,6 +209,12 @@ function sbat() {
 export -f sbat
 
 
+function sque() {
+    squeue -u ${USER} $@
+}
+export -f sque
+
+
 if is_source; then
     log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
