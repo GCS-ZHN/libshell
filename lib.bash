@@ -215,6 +215,180 @@ function sque() {
 export -f sque
 
 
+function permission2int() {
+    if [ "$#" -ne 1 ]; then
+        log_err "Usage: permission2int <PERMISSION_STRING>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local permission=$1
+    local result=0
+    if [[ $permission == *"r"* ]]; then
+        result=$((result + 4))
+    fi
+    if [[ $permission == *"w"* ]]; then
+        result=$((result + 2))
+    fi
+    if [[ $permission == *"x"* ]]; then
+        result=$((result + 1))
+    fi
+    echo $result
+}
+
+export -f permission2int
+
+
+function int2permission() {
+    if [ "$#" -ne 1 ]; then
+        log_err "Usage: int2permission <PERMISSION_INT>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local permission_int=$1
+    local result=""
+    if [ $permission_int -ge 4 ]; then
+        result="${result}r"
+        permission_int=$((permission_int - 4))
+    fi
+    if [ $permission_int -ge 2 ]; then
+        result="${result}w"
+        permission_int=$((permission_int - 2))
+    fi
+    if [ $permission_int -ge 1 ]; then
+        result="${result}x"
+    fi
+    echo $result
+}
+
+export -f int2permission
+
+
+function grant_access() {
+    if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+        log_err "Usage: grant_access <TARGET> <USER> [PERMISSION_MASK]" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local target=$1
+    local user=$2
+    local permission_mask=${3:-7}
+    owner_access=$(stat --format=%A $target | cut -c 2-4)
+    owner_access=$(permission2int $owner_access)
+    permission=$(($owner_access & $permission_mask))
+    permission=$(int2permission $permission)
+    setfacl -m u:$user:$permission $target
+    echo "Granting access $permission to $user for $target"
+}
+
+export -f grant_access
+
+
+function get_access() {
+    if [ "$#" -ne 2 ]; then
+        log_err "Usage: get_access <TARGET> <USER>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local target=$1
+    local user=$2
+    owner_group=$(id -g)
+    user_group=$(id -g $user)
+    access=$(getfacl  -c -p $target | grep "user:$user" | cut -d: -f3)
+    if [ -z $access ]; then
+        access=$(getfacl -c -p $target | grep "group:$user_group" | cut -d: -f3)
+    fi
+    if [ -z $access ]; then
+        if [ $owner_group -eq $user_group ]; then
+            access=$(getfacl -c -p $target | grep "group::" | cut -d: -f3)
+        else
+            access=$(getfacl -c -p $target | grep "other::" | cut -d: -f3)
+        fi
+    fi
+    echo $access
+}
+
+export -f get_access
+
+
+function check_executable() {
+    if [ "$#" -ne 2 ]; then
+        log_err "Usage: check_executable <TARGET> <USER>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local target=$1
+    local user=$2
+    access=$(get_access $target $user)
+    if [ $(echo $access | grep -c "x") -eq 0 ]; then
+        echo -e "User $user \\033[31mdoesn't have execute permission\\033[0m on $target."
+        echo -e "Please grant it to $user on $target by: "
+        echo -e ""
+        echo -e "    \\033[32msetfacl -m u:$user:x $target\\033[0m"
+        echo -e ""
+        echo -e "\\033[31mBut you should be sure not expose other files to $user.\\033[0m"
+        exit 1
+    fi
+}
+
+export -f check_executable
+
+
+function loop_check_parent_executable() {
+    if [ "$#" -ne 2 ]; then
+        log_err "Usage: loop_check_parent_executable <TARGET> <USER>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local target=$(dirname $(realpath $1))
+    local user=$2
+    while [ "$target" != "/" ]; do
+        check_executable $target $user
+        target=$(dirname $target)
+    done
+}
+
+export -f loop_check_parent_executable
+
+
+function is_user_exist() {
+    if [ "$#" -ne 1 ]; then
+        log_err "Usage: is_user_exist <USER>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    if [ -z $1 ]; then
+        echo -e "\\033[31mUser name is empty\\033[0m"
+        exit 1
+    fi
+    if [ $(id -u $1 > /dev/null 2>&1; echo $?) -ne 0 ]; then
+        echo -e "\\033[31mUser $1 does not exist\\033[0m"
+        exit 1
+    fi
+}
+
+export -f is_user_exist
+
+
+function copy_access() {
+    if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+        log_err "Usage: copy_access <TARGET> <USER> [PERMISSION_MASK]" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    local target_dir=$1
+    local user=$2
+    local permission_mask=${3:-5}
+
+    if [ ! -d $target_dir ]; then
+        echo -e "\\033[31mDirectory $target_dir does not exist\\033[0m"
+        exit 1
+    fi
+
+    # Check if the user exists
+    is_user_exist $user
+
+    # Check if the user has execute permission on all parent directories
+    loop_check_parent_executable $target_dir $user
+
+    # Grant access to all files and directories in the target directory
+    find $target_dir -exec bash -c 'grant_access "$0" "$1" "$2"' {} $user $permission_mask \;
+}
+
+export -f copy_access
+
+
 if is_source; then
     log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
