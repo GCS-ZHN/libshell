@@ -321,7 +321,7 @@ function check_executable() {
         echo -e "    \\033[32msetfacl -m u:$user:x $target\\033[0m"
         echo -e ""
         echo -e "\\033[31mBut you should be sure not expose other files to $user.\\033[0m"
-        exit 1
+        return ${LIBSHELL_DEFAULT_ERR}
     fi
 }
 
@@ -349,13 +349,10 @@ function is_user_exist() {
         log_err "Usage: is_user_exist <USER>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
-    if [ -z $1 ]; then
-        echo -e "\\033[31mUser name is empty\\033[0m"
-        exit 1
-    fi
+ 
     if [ $(id -u $1 > /dev/null 2>&1; echo $?) -ne 0 ]; then
         echo -e "\\033[31mUser $1 does not exist\\033[0m"
-        exit 1
+        return ${LIBSHELL_DEFAULT_ERR}
     fi
 }
 
@@ -373,14 +370,14 @@ function copy_access() {
 
     if [ ! -d $target_dir ]; then
         echo -e "\\033[31mDirectory $target_dir does not exist\\033[0m"
-        exit 1
+        return ${LIBSHELL_FILE_TYPE_ERR}
     fi
 
     # Check if the user exists
-    is_user_exist $user
+    is_user_exist $user || return $?
 
     # Check if the user has execute permission on all parent directories
-    loop_check_parent_executable $target_dir $user
+    loop_check_parent_executable $target_dir $user || return $?
 
     # Grant access to all files and directories in the target directory
     find $target_dir -exec bash -c 'grant_access "$0" "$1" "$2"' {} $user $permission_mask \;
