@@ -386,10 +386,28 @@ function copy_access() {
 export -f copy_access
 
 
+function __run_in_tmux_wrapper() {
+    # Internal wrapper function to handle tmux session creation
+    # Usage: __run_in_tmux_wrapper <cmd> [args...]
+    local cmd=$1
+    shift
+    
+    # If already in tmux, run the command directly
+    if [ -n "$TMUX" ]; then
+        command $cmd "$@"
+    else
+        local random_suffix=$(head -c 4 /dev/urandom | xxd -p)
+        tmux new -s "${cmd}_${random_suffix}" $cmd "$@"
+    fi
+}
+
+export -f __run_in_tmux_wrapper
+
+
 function run_in_tmux() {
     # Create an alias for a command to run it in a tmux session
     # Usage: run_in_tmux <cmd>
-    # This will create an alias: <cmd>='tmux new -s <cmd>_<random_suffix> <cmd>'
+    # If already in tmux, the command runs directly without creating nested session
     if [ "$#" -ne 1 ]; then
         log_err "Usage: run_in_tmux <cmd>" ${LIBSHELL_ARG_ERR}
         return $?
@@ -402,9 +420,8 @@ function run_in_tmux() {
     fi
 
     local cmd=$1
-    local random_suffix=$(head -c 4 /dev/urandom | xxd -p)
-    alias $cmd="tmux new -s ${cmd}_${random_suffix} $cmd"
-    echo "Created alias: $cmd -> tmux new -s ${cmd}_${random_suffix} $cmd"
+    alias $cmd="__run_in_tmux_wrapper $cmd"
+    echo "Created alias: $cmd -> auto tmux wrapper (detects nested tmux)"
     return ${LIBSHELL_DEFAULT_OK}
 }
 
