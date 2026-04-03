@@ -386,6 +386,31 @@ function copy_access() {
 export -f copy_access
 
 
+function run_in_tmux() {
+    # Create an alias for a command to run it in a tmux session
+    # Usage: run_in_tmux <cmd>
+    # This will create an alias: <cmd>='tmux new -s <cmd>_<random_suffix> <cmd>'
+    if [ "$#" -ne 1 ]; then
+        log_err "Usage: run_in_tmux <cmd>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+
+    # Check if tmux is available
+    if ! command -v tmux >/dev/null; then
+        log_err "tmux is not installed, skipping alias creation" ${LIBSHELL_CMD_NOT_FOUND}
+        return $?
+    fi
+
+    local cmd=$1
+    local random_suffix=$(head -c 4 /dev/urandom | xxd -p)
+    alias $cmd="tmux new -s ${cmd}_${random_suffix} $cmd"
+    echo "Created alias: $cmd -> tmux new -s ${cmd}_${random_suffix} $cmd"
+    return ${LIBSHELL_DEFAULT_OK}
+}
+
+export -f run_in_tmux
+
+
 if is_source; then
     log_err "LibShell is sourced" ${LIBSHELL_DEFAULT_OK}
 else
