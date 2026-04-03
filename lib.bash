@@ -408,6 +408,7 @@ function run_in_tmux() {
     # Create an alias for a command to run it in a tmux session
     # Usage: run_in_tmux <cmd>
     # If already in tmux, the command runs directly without creating nested session
+    # Also creates <cmd>.raw alias to invoke the original command directly
     if [ "$#" -ne 1 ]; then
         log_err "Usage: run_in_tmux <cmd>" ${LIBSHELL_ARG_ERR}
         return $?
@@ -420,8 +421,21 @@ function run_in_tmux() {
     fi
 
     local cmd=$1
+    
+    # Check if the command exists
+    if ! command -v $cmd >/dev/null; then
+        log_err "Command '$cmd' not found" ${LIBSHELL_CMD_NOT_FOUND}
+        return $?
+    fi
+
+    # Create alias for tmux wrapper
     alias $cmd="__run_in_tmux_wrapper $cmd"
-    echo "Created alias: $cmd -> auto tmux wrapper (detects nested tmux)"
+    # Create alias for raw command (useful for --help, --version, etc.)
+    alias $cmd.raw="command $cmd"
+    
+    echo "Created aliases:"
+    echo "  $cmd     -> auto tmux wrapper (detects nested tmux)"
+    echo "  $cmd.raw -> original command (for --help, --version, etc.)"
     return ${LIBSHELL_DEFAULT_OK}
 }
 
