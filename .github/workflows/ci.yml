@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ==========================================================================
+  # Test common.sh and lib.bash on Linux and macOS
+  # ==========================================================================
+  test-bash:
+    name: Bash Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Bash version
+        run: bash --version
+
+      - name: Run common.sh tests
+        run: bash tests/test_common.sh
+
+      - name: Run lib.bash tests
+        run: bash tests/test_lib_bash.sh
+
+  # ==========================================================================
+  # Test lib.zsh on Linux and macOS
+  # ==========================================================================
+  test-zsh:
+    name: Zsh Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Zsh (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y zsh
+
+      - name: Check Zsh version
+        run: zsh --version
+
+      - name: Run lib.zsh tests
+        run: zsh tests/test_lib_zsh.sh
+
+  # ==========================================================================
+  # Test lib.ps1 on Windows, Linux, and macOS (PowerShell Core)
+  # ==========================================================================
+  test-powershell:
+    name: PowerShell Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check PowerShell version
+        shell: pwsh
+        run: $PSVersionTable
+
+      - name: Run lib.ps1 tests
+        shell: pwsh
+        run: ./tests/test_lib_ps1.ps1
+
+  # ==========================================================================
+  # ShellCheck lint (optional, non-blocking)
+  # ==========================================================================
+  shellcheck:
+    name: ShellCheck Lint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint common.sh
+        run: shellcheck common.sh || true
+
+      - name: Lint lib.bash
+        run: shellcheck -s bash lib.bash || true
+
+      - name: Lint test files
+        run: |
+          shellcheck -s bash tests/test_common.sh || true
+          shellcheck -s bash tests/test_lib_bash.sh || true
+          shellcheck -s bash tests/run_tests.sh || true
+
+  # ==========================================================================
+  # Summary job - depends on all test jobs
+  # ==========================================================================
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-bash, test-zsh, test-powershell]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "=== Test Results Summary ==="
+          echo "Bash tests: ${{ needs.test-bash.result }}"
+          echo "Zsh tests: ${{ needs.test-zsh.result }}"
+          echo "PowerShell tests: ${{ needs.test-powershell.result }}"
+          
+          if [[ "${{ needs.test-bash.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-zsh.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-powershell.result }}" == "failure" ]]; then
+            echo "::error::Some tests failed!"
+            exit 1
+          fi
+          
+          echo "All tests passed!"
