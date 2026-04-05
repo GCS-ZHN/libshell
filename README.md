@@ -165,61 +165,71 @@ Write-LogInfo "Information message"
 
 ### Utility Functions
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `log_err` | Output error message to stderr | `log_err <MSG> [EXIT_CODE]` |
-| `is_source` | Check if script is being sourced | `is_source && echo "sourced"` |
-| `require_arg` | Check if variable is defined | `require_arg <VAR_NAME>` |
-| `is_user_exist` | Check if user exists | `is_user_exist <USER>` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `log_err` | Output error message to stderr | `log_err <MSG> [EXIT_CODE]` | Bash/Zsh/PowerShell, All OS |
+| `is_source` | Check if script is being sourced | `is_source && echo "sourced"` | Bash/Zsh, Linux/macOS |
+| `require_arg` | Check if variable is defined | `require_arg <VAR_NAME>` | Bash/Zsh/PowerShell, All OS |
+| `is_user_exist` | Check if user exists | `is_user_exist <USER>` | Bash/Zsh/PowerShell, All OS |
 
 ### Path Functions
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `real_dir` | Get absolute path of directory | `real_dir <DIR_PATH>` |
-| `real_file` | Get absolute path of file | `real_file <FILE_PATH>` |
-| `prepend_path` | Prepend path to variable (no duplicates) | `prepend_path <VAR> <PATH> [SEP]` |
-| `create_link` | Create symlink (idempotent) | `create_link <SOURCE> <TARGET>` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `real_dir` | Get absolute path of directory | `real_dir <DIR_PATH>` | Bash/Zsh/PowerShell, All OS |
+| `real_file` | Get absolute path of file | `real_file <FILE_PATH>` | Bash/Zsh/PowerShell, All OS |
+| `prepend_path` | Prepend path to variable (no duplicates) | `prepend_path <VAR> <PATH> [SEP]` | Bash/Zsh/PowerShell, All OS |
+| `create_link` | Create symlink (idempotent) | `create_link <SOURCE> <TARGET>` | Bash/Zsh/PowerShell, All OS |
 
 ### Network Functions
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `port_avail` | Check if remote port is accessible | `port_avail <HOST> <PORT>` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `port_avail` | Check if remote port is accessible | `port_avail <HOST> <PORT>` | Bash/Zsh/PowerShell, All OS |
 
 ### Permission Functions
 
 > **Note**: ACL functions (`grant_access`, `get_access`, etc.) require `setfacl`/`getfacl` commands. 
 > These are available on Linux by default and can be installed on macOS via Homebrew (`brew install coreutils`).
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `permission2int` | Convert permission string to int | `permission2int "rwx"` → `7` |
-| `int2permission` | Convert int to permission string | `int2permission 7` → `rwx` |
-| `grant_access` | Grant ACL access to user | `grant_access <PATH> <USER> [MASK]` |
-| `get_access` | Get user's ACL access | `get_access <PATH> <USER>` |
-| `check_executable` | Check if user has execute permission | `check_executable <PATH> <USER>` |
-| `loop_check_parent_executable` | Check execute permission on all parent dirs | `loop_check_parent_executable <PATH> <USER>` |
-| `copy_access` | Copy owner permissions to user | `copy_access <DIR> <USER> [MASK]` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `permission2int` | Convert permission string to int | `permission2int "rwx"` → `7` | Bash/Zsh, Linux/macOS |
+| `int2permission` | Convert int to permission string | `int2permission 7` → `rwx` | Bash/Zsh, Linux/macOS |
+| `grant_access` | Grant ACL access to user | `grant_access <PATH> <USER> [MASK]` | Bash/Zsh, Linux |
+| `get_access` | Get user's ACL access | `get_access <PATH> <USER>` | Bash/Zsh, Linux |
+| `check_executable` | Check if user has execute permission | `check_executable <PATH> <USER>` | Bash/Zsh, Linux |
+| `loop_check_parent_executable` | Check execute permission on all parent dirs | `loop_check_parent_executable <PATH> <USER>` | Bash/Zsh, Linux |
+| `copy_access` | Copy owner permissions to user | `copy_access <DIR> <USER> [MASK]` | Bash/Zsh, Linux |
+
+### Hash Functions
+
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `md5sum` | Compute MD5 hash | `md5sum <FILE>` | PowerShell, All OS |
+| `sha1sum` | Compute SHA1 hash | `sha1sum <FILE>` | PowerShell, All OS |
+| `sha256sum` | Compute SHA256 hash | `sha256sum <FILE>` | PowerShell, All OS |
+| `sha384sum` | Compute SHA384 hash | `sha384sum <FILE>` | PowerShell, All OS |
+| `sha512sum` | Compute SHA512 hash | `sha512sum <FILE>` | PowerShell, All OS |
 
 ### Conda Functions
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `conda_mv` | Move conda environment to new location | `conda_mv <OLD_PATH> <NEW_PATH>` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `conda_mv` | Move conda environment to new location | `conda_mv <OLD_PATH> <NEW_PATH>` | Bash/Zsh/PowerShell, All OS |
 
 ### Slurm Functions
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `sbat` | Submit batch job with colored output | `sbat [ARGS...] <SCRIPT>` |
-| `sque` | Query current user's jobs | `sque [ARGS...]` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `sbat` | Submit batch job with colored output | `sbat [ARGS...] <SCRIPT>` | Bash, Linux |
+| `sque` | Query current user's jobs | `sque [ARGS...]` | Bash, Linux |
 
 ### Tmux Functions
 
-| Function | Description | Usage |
-|----------|-------------|-------|
-| `run_in_tmux` | Create alias to run command in tmux | `run_in_tmux <CMD>` |
+| Function | Description | Usage | Support |
+|----------|-------------|-------|---------|
+| `run_in_tmux` | Create alias to run command in tmux | `run_in_tmux <CMD>` | Bash/Zsh, Linux/macOS |
 
 #### `run_in_tmux` Details
 
