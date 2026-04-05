@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/test_framework.sh"
 
 # Source the library to test
 export LIBSHELL_QUIET=1
+unset LIBSHELL_COMMON_LOADED  # Ensure fresh load even if inherited from parent
 source "$PROJECT_DIR/common.sh"
 
 # =============================================================================
@@ -138,7 +139,12 @@ assert_equals "" "$result"
 
 test_start "real_dir returns absolute path for existing directory"
 result=$(real_dir "/tmp")
-assert_equals "/private/tmp" "$result" || assert_equals "/tmp" "$result"
+# On macOS, /tmp is a symlink to /private/tmp, but on Linux it's just /tmp
+if [ "$result" = "/tmp" ] || [ "$result" = "/private/tmp" ]; then
+    test_pass
+else
+    test_fail "Expected '/tmp' or '/private/tmp' but got '$result'"
+fi
 
 test_start "real_dir fails for non-existent directory"
 real_dir "/nonexistent_dir_12345" 2>/dev/null

@@ -91,13 +91,13 @@ function Get-RealDir {
     )
 
     if (-not (Test-Path $Path)) {
-        Write-LogError "'$Path' does not exist" $script:LIBSHELL_FILE_TYPE_ERR
+        Write-LogError "'$Path' does not exist" $script:LIBSHELL_FILE_TYPE_ERR | Out-Null
         return $null
     }
 
     $item = Get-Item $Path -ErrorAction SilentlyContinue
     if (-not $item.PSIsContainer) {
-        Write-LogError "'$Path' is not a directory" $script:LIBSHELL_FILE_TYPE_ERR
+        Write-LogError "'$Path' is not a directory" $script:LIBSHELL_FILE_TYPE_ERR | Out-Null
         return $null
     }
 
@@ -118,13 +118,13 @@ function Get-RealFile {
     )
 
     if (-not (Test-Path $Path)) {
-        Write-LogError "'$Path' does not exist" $script:LIBSHELL_FILE_TYPE_ERR
+        Write-LogError "'$Path' does not exist" $script:LIBSHELL_FILE_TYPE_ERR | Out-Null
         return $null
     }
 
     $item = Get-Item $Path -ErrorAction SilentlyContinue
     if ($item.PSIsContainer) {
-        Write-LogError "'$Path' is not a file" $script:LIBSHELL_FILE_TYPE_ERR
+        Write-LogError "'$Path' is not a file" $script:LIBSHELL_FILE_TYPE_ERR | Out-Null
         return $null
     }
 
@@ -466,15 +466,21 @@ function Move-CondaEnv {
 # =============================================================================
 # Unix-style Aliases
 # =============================================================================
-Set-Alias -Name which -Value Get-Command
-Set-Alias -Name df -Value Get-PSDrive
-Set-Alias -Name ls -Value Get-ChildItem
-Set-Alias -Name cat -Value Get-Content
-Set-Alias -Name pwd -Value Get-Location
-Set-Alias -Name rm -Value Remove-Item
-Set-Alias -Name cp -Value Copy-Item
-Set-Alias -Name mv -Value Move-Item
-Set-Alias -Name touch -Value New-Item
+# Note: On Windows, ls, cat, rm, cp, mv are built-in AllScope aliases that
+# cannot be overwritten. We only set aliases that don't conflict.
+Set-Alias -Name which -Value Get-Command -ErrorAction SilentlyContinue
+Set-Alias -Name df -Value Get-PSDrive -ErrorAction SilentlyContinue
+Set-Alias -Name pwd -Value Get-Location -ErrorAction SilentlyContinue
+Set-Alias -Name touch -Value New-Item -ErrorAction SilentlyContinue
+
+# These aliases may fail on Windows due to AllScope restrictions - that's OK
+if ($IsLinux -or $IsMacOS) {
+    Set-Alias -Name ls -Value Get-ChildItem -ErrorAction SilentlyContinue
+    Set-Alias -Name cat -Value Get-Content -ErrorAction SilentlyContinue
+    Set-Alias -Name rm -Value Remove-Item -ErrorAction SilentlyContinue
+    Set-Alias -Name cp -Value Copy-Item -ErrorAction SilentlyContinue
+    Set-Alias -Name mv -Value Move-Item -ErrorAction SilentlyContinue
+}
 
 # Alias mappings to Unix-style names
 Set-Alias -Name log_err -Value Write-LogError
@@ -500,21 +506,6 @@ if ($env:LIBSHELL_QUIET -ne "1") {
     Write-Host "LibShell (PowerShell) v$script:LIBSHELL_VERSION loaded" -ForegroundColor Green
 }
 
-# Export functions for module use
-Export-ModuleMember -Function @(
-    'Write-LogError', 'Write-LogWarn', 'Write-LogInfo',
-    'Get-RealDir', 'Get-RealFile', 'Add-PathPrefix',
-    'Test-PortAvailable', 'New-SymbolicLinkSafe', 'Test-UserExist',
-    'Get-HashSum', 'md5sum', 'sha1sum', 'sha256sum', 'sha384sum', 'sha512sum',
-    'Test-RequiredArg', 'Move-CondaEnv'
-) -Alias @(
-    'which', 'df', 'ls', 'cat', 'pwd', 'rm', 'cp', 'mv', 'touch',
-    'log_err', 'log_warn', 'log_info', 'real_dir', 'real_file',
-    'prepend_path', 'port_avail', 'create_link', 'is_user_exist',
-    'require_arg', 'hashsum', 'conda_mv'
-) -Variable @(
-    'LIBSHELL_VERSION', 'LIBSHELL_DEFAULT_OK', 'LIBSHELL_DEFAULT_ERR',
-    'LIBSHELL_ARG_ERR', 'LIBSHELL_SHELL_NOT_SUPPORTED', 'LIBSHELL_CMD_NOT_FOUND',
-    'LIBSHELL_FILE_EXISTED', 'LIBSHELL_FILE_TYPE_ERR', 'LIBSHELL_FILE_IO_ERR',
-    'LIBSHELL_LINK_ERR', 'LIBSHELL_OS_NOT_SUPPORTED'
-) -ErrorAction SilentlyContinue
+# Note: Export-ModuleMember only works when used as a module (.psm1).
+# When dot-sourcing this file, all functions and aliases are automatically
+# available in the caller's scope.
