@@ -1,18 +1,33 @@
 # libshell
 
-A shell utility library for common operations, supporting both **Bash** and **Zsh**, cross-platform for **Linux** and **macOS**.
+A cross-platform shell utility library for common operations, supporting **Bash**, **Zsh**, and **PowerShell** on **Linux**, **macOS**, and **Windows**.
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/libshell.git
+git clone https://github.com/GCS-ZHN/libshell.git
 
 # For Bash users, add to ~/.bashrc
 source /path/to/libshell/lib.bash
 
 # For Zsh users, add to ~/.zshrc
 source /path/to/libshell/lib.zsh
+```
+
+### PowerShell
+
+```powershell
+# Dot-source in your PowerShell profile ($PROFILE)
+. /path/to/libshell/lib.ps1
+
+# Or load temporarily in current session
+. C:\path\to\libshell\lib.ps1
+```
+
+To find your PowerShell profile location:
+```powershell
+echo $PROFILE
 ```
 
 ## Project Structure
@@ -22,11 +37,13 @@ libshell/
 ├── common.sh          # Shared POSIX-compatible code (OS detection, dependency check)
 ├── lib.bash           # Bash-specific implementation
 ├── lib.zsh            # Zsh-specific implementation
+├── lib.ps1            # PowerShell implementation (Windows/Linux/macOS)
 └── tests/
     ├── test_framework.sh   # Lightweight test framework
     ├── test_common.sh      # Tests for common.sh
     ├── test_lib_bash.sh    # Tests for lib.bash
     ├── test_lib_zsh.sh     # Tests for lib.zsh
+    ├── test_lib_ps1.ps1    # Tests for lib.ps1
     └── run_tests.sh        # Test runner
 ```
 
@@ -112,6 +129,36 @@ source lib.zsh
 require_arg MY_VAR || log_err 'MY_VAR not found'
 prepend_path PATH "/usr/local/bin"
 run_in_tmux python
+```
+
+### PowerShell
+
+```powershell
+. lib.ps1
+
+# Check if argument is defined
+Test-RequiredArg -VarName "MY_VAR"
+
+# Or use Unix-style alias
+require_arg MY_VAR
+
+# Prepend path to environment variable
+Add-PathPrefix -VarName "PATH" -NewPath "C:\tools\bin"
+
+# Or use Unix-style alias
+prepend_path PATH "C:\tools\bin"
+
+# Get real directory path
+Get-RealDir "C:\Users"
+
+# Hash functions
+md5sum file.txt
+sha256sum file.txt
+
+# Logging
+Write-LogError "Something went wrong"
+Write-LogWarn "This is a warning"
+Write-LogInfo "Information message"
 ```
 
 ## Function Reference
