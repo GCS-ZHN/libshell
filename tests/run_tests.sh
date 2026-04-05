@@ -6,6 +6,7 @@
 #   ./run_tests.sh bash      # Run bash tests only
 #   ./run_tests.sh zsh       # Run zsh tests only
 #   ./run_tests.sh common    # Run common tests only
+#   ./run_tests.sh pwsh      # Run PowerShell tests only
 #
 # Environment variables:
 #   TEST_VERBOSE=1           # Enable verbose output
@@ -67,6 +68,13 @@ case "$TEST_TARGET" in
             echo -e "${RED}zsh not found, skipping zsh tests${NC}"
         fi
         ;;
+    pwsh|powershell)
+        if command -v pwsh >/dev/null 2>&1; then
+            run_test_suite "PowerShell Tests" "pwsh" "$SCRIPT_DIR/test_lib_ps1.ps1"
+        else
+            echo -e "${RED}pwsh not found, skipping PowerShell tests${NC}"
+        fi
+        ;;
     all)
         run_test_suite "Common Tests (bash)" "bash" "$SCRIPT_DIR/test_common.sh"
         run_test_suite "Bash Tests" "bash" "$SCRIPT_DIR/test_lib_bash.sh"
@@ -75,10 +83,15 @@ case "$TEST_TARGET" in
         else
             echo -e "${RED}zsh not found, skipping zsh tests${NC}"
         fi
+        if command -v pwsh >/dev/null 2>&1; then
+            run_test_suite "PowerShell Tests" "pwsh" "$SCRIPT_DIR/test_lib_ps1.ps1"
+        else
+            echo -e "${RED}pwsh not found, skipping PowerShell tests${NC}"
+        fi
         ;;
     *)
         echo "Unknown test target: $TEST_TARGET"
-        echo "Usage: $0 [all|common|bash|zsh]"
+        echo "Usage: $0 [all|common|bash|zsh|pwsh]"
         exit 1
         ;;
 esac
