@@ -47,11 +47,11 @@ shellcheck common.sh lib.bash lib.zsh
 
 ### Guard Against Multiple Sourcing
 ```bash
-# Bash/Zsh (POSIX)
+# Bash/Zsh (POSIX) - Do NOT export, subshells should reload
 if [ -n "$LIBSHELL_COMMON_LOADED" ]; then return 0; fi
-export LIBSHELL_COMMON_LOADED=1
+LIBSHELL_COMMON_LOADED=1
 
-# PowerShell
+# PowerShell - env vars are inherited but that's OK for pwsh
 if ($env:LIBSHELL_PS_LOADED -eq "1") { return }
 $env:LIBSHELL_PS_LOADED = "1"
 ```

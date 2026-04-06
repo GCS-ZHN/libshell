@@ -1,7 +1,8 @@
 # lib.bash - Bash-specific shell module for general operations
 # Requires: bash 4.0+
 
-# Prevent multiple sourcing
+# Prevent multiple sourcing in the same shell session
+# Note: Do NOT export this variable - subshells should reload the library
 if [ -n "$LIBSHELL_BASH_LOADED" ]; then
     return 0
 fi
@@ -22,7 +23,7 @@ source "${LIBSHELL_DIR}/common.sh" || {
     return 1
 }
 
-export LIBSHELL_BASH_LOADED=1
+LIBSHELL_BASH_LOADED=1
 
 # =============================================================================
 # Bash-specific Functions

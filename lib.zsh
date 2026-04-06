@@ -1,7 +1,8 @@
 # lib.zsh - Zsh-specific shell module for general operations
 # Requires: zsh 5.0+
 
-# Prevent multiple sourcing
+# Prevent multiple sourcing in the same shell session
+# Note: Do NOT export this variable - subshells should reload the library
 if [[ -n "$LIBSHELL_ZSH_LOADED" ]]; then
     return 0
 fi
@@ -21,7 +22,7 @@ source "${LIBSHELL_DIR}/common.sh" || {
     return 1
 }
 
-export LIBSHELL_ZSH_LOADED=1
+LIBSHELL_ZSH_LOADED=1
 
 # =============================================================================
 # Zsh-specific Functions

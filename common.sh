@@ -1,11 +1,12 @@
 # common.sh - Shared constants and POSIX-compatible functions for libshell
 # This file should be sourced by lib.bash and lib.zsh
 
-# Prevent multiple sourcing
+# Prevent multiple sourcing in the same shell session
+# Note: Do NOT export this variable - subshells should reload the library
 if [ -n "$LIBSHELL_COMMON_LOADED" ]; then
     return 0
 fi
-export LIBSHELL_COMMON_LOADED=1
+LIBSHELL_COMMON_LOADED=1
 
 # =============================================================================
 # Constants / Error Codes
