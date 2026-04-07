@@ -497,6 +497,155 @@ Set-Alias -Name hashsum -Value Get-HashSum
 Set-Alias -Name conda_mv -Value Move-CondaEnv
 
 # =============================================================================
+# Auto-update Functions
+# =============================================================================
+
+# Internal function to check if updates are available
+# Returns: $true if updates available, $false otherwise
+function _CheckLibshellUpdate {
+    [CmdletBinding()]
+    param()
+    
+    $script:LIBSHELL_UPDATE_AVAILABLE = $false
+    
+    # Check if git is available
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        return $false
+    }
+    
+    # Get script directory
+    $scriptDir = Split-Path -Parent $MyInvocation.ScriptName
+    if (-not $scriptDir) {
+        $scriptDir = $PSScriptRoot
+    }
+    
+    # Check if it's a git repository
+    if (-not (Test-Path (Join-Path $scriptDir ".git"))) {
+        return $false
+    }
+    
+    # Save current location
+    $originalDir = Get-Location
+    Set-Location $scriptDir
+    
+    try {
+        # Fetch latest from remote
+        $null = git fetch origin 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            return $false
+        }
+        
+        # Get local and remote revisions
+        $localRev = git rev-parse HEAD 2>&1
+        $remoteRev = git rev-parse origin/HEAD 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $remoteRev = git rev-parse origin/main 2>&1
+        }
+        if ($LASTEXITCODE -ne 0) {
+            $remoteRev = git rev-parse origin/master 2>&1
+        }
+        
+        if ($localRev -ne $remoteRev) {
+            # Check if local is behind remote
+            $null = git merge-base --is-ancestor $localRev $remoteRev 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $script:LIBSHELL_UPDATE_AVAILABLE = $true
+                return $true
+            }
+        }
+        
+        return $false
+    }
+    finally {
+        Set-Location $originalDir
+    }
+}
+
+# Update libshell from remote repository
+function Update-Libshell {
+    <#
+    .SYNOPSIS
+        Update libshell from the remote git repository.
+    .DESCRIPTION
+        Checks for updates and pulls the latest changes from the remote repository.
+    .EXAMPLE
+        Update-Libshell
+    #>
+    [CmdletBinding()]
+    param()
+    
+    # Check if git is available
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-LogError "[libshell] git command not found, cannot update" $script:LIBSHELL_CMD_NOT_FOUND | Out-Null
+        return $false
+    }
+    
+    # Get script directory
+    $scriptDir = Split-Path -Parent $MyInvocation.ScriptName
+    if (-not $scriptDir) {
+        $scriptDir = $PSScriptRoot
+    }
+    
+    # Check if it's a git repository
+    if (-not (Test-Path (Join-Path $scriptDir ".git"))) {
+        Write-LogError "[libshell] Not a git repository, cannot update" $script:LIBSHELL_DEFAULT_ERR | Out-Null
+        return $false
+    }
+    
+    # Save current location
+    $originalDir = Get-Location
+    Set-Location $scriptDir
+    
+    try {
+        # Check for updates
+        $hasUpdates = _CheckLibshellUpdate
+        
+        if (-not $hasUpdates -and -not $script:LIBSHELL_UPDATE_AVAILABLE) {
+            if ($env:LIBSHELL_QUIET -ne "1") {
+                Write-Host "[libshell] Already up-to-date (v$script:LIBSHELL_VERSION)" -ForegroundColor Green
+            }
+            return $true
+        }
+        
+        # Check for local modifications
+        $status = git status --porcelain 2>&1
+        if ($status) {
+            Write-LogError "[libshell] Local modifications detected. Please commit or stash changes before updating." $script:LIBSHELL_DEFAULT_ERR | Out-Null
+            return $false
+        }
+        
+        # Perform the update
+        if ($env:LIBSHELL_QUIET -ne "1") {
+            Write-Host "[libshell] Updating from remote..." -ForegroundColor Yellow
+        }
+        
+        $result = git pull --ff-only origin 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            # Get new version
+            $versionLine = Get-Content (Join-Path $scriptDir "lib.ps1") | Where-Object { $_ -match '^\$script:LIBSHELL_VERSION\s*=' }
+            $newVersion = if ($versionLine -match '"([^"]+)"') { $matches[1] } else { "unknown" }
+            
+            if ($env:LIBSHELL_QUIET -ne "1") {
+                Write-Host "[libshell] Updated successfully to v$newVersion" -ForegroundColor Green
+                Write-Host "[libshell] Please restart your shell or re-source the library to apply changes." -ForegroundColor Yellow
+            }
+            return $true
+        }
+        else {
+            Write-LogError "[libshell] Update failed. There may be conflicts with local changes." $script:LIBSHELL_DEFAULT_ERR | Out-Null
+            Write-LogError "[libshell] Try: cd $scriptDir; git status" $script:LIBSHELL_DEFAULT_ERR | Out-Null
+            return $false
+        }
+    }
+    finally {
+        Set-Location $originalDir
+    }
+}
+
+# Unix-style alias
+Set-Alias -Name update_libshell -Value Update-Libshell
+
+# =============================================================================
 # Initialization
 # =============================================================================
 $env:LIBSHELL_PS_LOADED = "1"
@@ -504,6 +653,26 @@ $env:LIBSHELL_PS_LOADED = "1"
 # Display load message if not quiet
 if ($env:LIBSHELL_QUIET -ne "1") {
     Write-Host "LibShell (PowerShell) v$script:LIBSHELL_VERSION loaded" -ForegroundColor Green
+}
+
+# Auto-update check on load (if enabled)
+if ($env:LIBSHELL_UPDATE_CHECKED -ne "1") {
+    $env:LIBSHELL_UPDATE_CHECKED = "1"
+    
+    if ($env:LIBSHELL_AUTO_UPDATE -eq "1") {
+        # Auto-update enabled: check and update
+        if (_CheckLibshellUpdate) {
+            Update-Libshell | Out-Null
+        }
+    }
+    else {
+        # Auto-update disabled: just notify if updates available
+        if (_CheckLibshellUpdate) {
+            if ($env:LIBSHELL_QUIET -ne "1") {
+                Write-Host "[libshell] Updates available. Run 'Update-Libshell' or 'update_libshell' to update." -ForegroundColor Yellow
+            }
+        }
+    }
 }
 
 # Note: Export-ModuleMember only works when used as a module (.psm1).

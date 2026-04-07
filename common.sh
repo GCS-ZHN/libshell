@@ -396,3 +396,145 @@ if [ "${LIBSHELL_DEPS_CHECKED:-0}" != "1" ]; then
     __libshell_check_optional_deps
     export LIBSHELL_DEPS_CHECKED=1
 fi
+
+# =============================================================================
+# Auto-update Functions
+# =============================================================================
+
+# Internal function to check if updates are available
+# Returns: 0 if updates available, 1 if up-to-date, 2 if error
+# Sets: __LIBSHELL_UPDATE_AVAILABLE=1 if updates found
+__libshell_check_update() {
+    __LIBSHELL_UPDATE_AVAILABLE=0
+    
+    # Check if git is available
+    if ! command -v git >/dev/null 2>&1; then
+        return 2
+    fi
+    
+    # Check if LIBSHELL_DIR is a git repository
+    if [ ! -d "${LIBSHELL_DIR}/.git" ]; then
+        return 2
+    fi
+    
+    # Save current directory and change to LIBSHELL_DIR
+    local original_dir="$PWD"
+    cd "$LIBSHELL_DIR" || return 2
+    
+    # Fetch latest from remote (quietly)
+    if ! git fetch origin --quiet 2>/dev/null; then
+        cd "$original_dir"
+        return 2
+    fi
+    
+    # Check if local is behind remote
+    local local_rev remote_rev
+    local_rev=$(git rev-parse HEAD 2>/dev/null)
+    remote_rev=$(git rev-parse origin/HEAD 2>/dev/null || git rev-parse origin/main 2>/dev/null || git rev-parse origin/master 2>/dev/null)
+    
+    if [ -z "$local_rev" ] || [ -z "$remote_rev" ]; then
+        cd "$original_dir"
+        return 2
+    fi
+    
+    if [ "$local_rev" != "$remote_rev" ]; then
+        # Check if local is behind (not ahead or diverged)
+        if git merge-base --is-ancestor "$local_rev" "$remote_rev" 2>/dev/null; then
+            __LIBSHELL_UPDATE_AVAILABLE=1
+            cd "$original_dir"
+            return 0
+        fi
+    fi
+    
+    cd "$original_dir"
+    return 1
+}
+
+# Update libshell from remote repository
+# Usage: update_libshell
+# Returns: 0 on success, 1 if already up-to-date, 2 on error
+update_libshell() {
+    # Check if git is available
+    if ! command -v git >/dev/null 2>&1; then
+        log_err "[libshell] git command not found, cannot update" ${LIBSHELL_CMD_NOT_FOUND}
+        return 2
+    fi
+    
+    # Check if LIBSHELL_DIR is set and is a git repository
+    if [ -z "$LIBSHELL_DIR" ] || [ ! -d "${LIBSHELL_DIR}/.git" ]; then
+        log_err "[libshell] Not a git repository, cannot update" ${LIBSHELL_DEFAULT_ERR}
+        return 2
+    fi
+    
+    # Save current directory
+    local original_dir="$PWD"
+    cd "$LIBSHELL_DIR" || {
+        log_err "[libshell] Failed to enter directory: $LIBSHELL_DIR" ${LIBSHELL_FILE_IO_ERR}
+        return 2
+    }
+    
+    # Check for updates first
+    __libshell_check_update
+    local check_result=$?
+    
+    if [ $check_result -eq 2 ]; then
+        cd "$original_dir"
+        log_err "[libshell] Failed to check for updates" ${LIBSHELL_DEFAULT_ERR}
+        return 2
+    fi
+    
+    if [ $check_result -eq 1 ]; then
+        if [ "$LIBSHELL_QUIET" != "1" ]; then
+            echo -e "\033[32m[libshell] Already up-to-date (v${LIBSHELL_VERSION})\033[0m"
+        fi
+        cd "$original_dir"
+        return 1
+    fi
+    
+    # Check for local modifications
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        log_err "[libshell] Local modifications detected. Please commit or stash changes before updating." ${LIBSHELL_DEFAULT_ERR}
+        cd "$original_dir"
+        return 2
+    fi
+    
+    # Perform the update
+    if [ "$LIBSHELL_QUIET" != "1" ]; then
+        echo -e "\033[33m[libshell] Updating from remote...\033[0m"
+    fi
+    
+    if git pull --ff-only origin 2>/dev/null; then
+        local new_version
+        new_version=$(grep -E "^export LIBSHELL_VERSION=" "${LIBSHELL_DIR}/common.sh" 2>/dev/null | cut -d'=' -f2)
+        if [ "$LIBSHELL_QUIET" != "1" ]; then
+            echo -e "\033[32m[libshell] Updated successfully to v${new_version:-unknown}\033[0m"
+            echo -e "\033[33m[libshell] Please restart your shell or re-source the library to apply changes.\033[0m"
+        fi
+        cd "$original_dir"
+        return 0
+    else
+        log_err "[libshell] Update failed. There may be conflicts with local changes." ${LIBSHELL_DEFAULT_ERR}
+        log_err "[libshell] Try: cd $LIBSHELL_DIR && git status" ${LIBSHELL_DEFAULT_ERR}
+        cd "$original_dir"
+        return 2
+    fi
+}
+
+# Auto-update check on load (if enabled)
+if [ "${LIBSHELL_UPDATE_CHECKED:-0}" != "1" ]; then
+    export LIBSHELL_UPDATE_CHECKED=1
+    
+    if [ "$LIBSHELL_AUTO_UPDATE" = "1" ]; then
+        # Auto-update enabled: check and update silently
+        if __libshell_check_update && [ "$__LIBSHELL_UPDATE_AVAILABLE" = "1" ]; then
+            update_libshell
+        fi
+    else
+        # Auto-update disabled: just notify if updates available
+        if __libshell_check_update && [ "$__LIBSHELL_UPDATE_AVAILABLE" = "1" ]; then
+            if [ "$LIBSHELL_QUIET" != "1" ]; then
+                echo -e "\033[33m[libshell] Updates available. Run 'update_libshell' to update.\033[0m"
+            fi
+        fi
+    fi
+fi

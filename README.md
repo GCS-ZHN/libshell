@@ -30,6 +30,29 @@ To find your PowerShell profile location:
 echo $PROFILE
 ```
 
+## Auto-Update
+
+libshell can automatically check for updates when loaded. Configure with environment variables:
+
+```bash
+# Enable auto-update (will pull updates automatically)
+export LIBSHELL_AUTO_UPDATE=1
+
+# Or just get notified about available updates (default behavior)
+# No configuration needed - you'll see a message if updates are available
+```
+
+To manually update:
+```bash
+# Bash/Zsh
+update_libshell
+
+# PowerShell
+Update-Libshell
+# or
+update_libshell
+```
+
 ## Project Structure
 
 ```
@@ -171,6 +194,7 @@ Write-LogInfo "Information message"
 | `is_source` | Check if script is being sourced | `is_source && echo "sourced"` | Bash/Zsh, Linux/macOS |
 | `require_arg` | Check if variable is defined | `require_arg <VAR_NAME>` | Bash/Zsh/PowerShell, All OS |
 | `is_user_exist` | Check if user exists | `is_user_exist <USER>` | Bash/Zsh/PowerShell, All OS |
+| `update_libshell` | Update libshell from git remote | `update_libshell` | Bash/Zsh/PowerShell, All OS |
 
 ### Path Functions
 
