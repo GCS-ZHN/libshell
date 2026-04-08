@@ -500,145 +500,158 @@ Set-Alias -Name conda_mv -Value Move-CondaEnv
 # Auto-update Functions
 # =============================================================================
 
+# GitHub repository for updates
+$script:LIBSHELL_GITHUB_REPO = if ($env:LIBSHELL_GITHUB_REPO) { $env:LIBSHELL_GITHUB_REPO } else { "GCS-ZHN/libshell" }
+
 # Internal function to check if updates are available
 # Returns: $true if updates available, $false otherwise
+# Sets: $script:LIBSHELL_UPDATE_AVAILABLE and $script:LIBSHELL_LATEST_VERSION
 function _CheckLibshellUpdate {
     [CmdletBinding()]
     param()
     
     $script:LIBSHELL_UPDATE_AVAILABLE = $false
-    
-    # Check if git is available
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        return $false
-    }
-    
-    # Get script directory
-    $scriptDir = Split-Path -Parent $MyInvocation.ScriptName
-    if (-not $scriptDir) {
-        $scriptDir = $PSScriptRoot
-    }
-    
-    # Check if it's a git repository
-    if (-not (Test-Path (Join-Path $scriptDir ".git"))) {
-        return $false
-    }
-    
-    # Save current location
-    $originalDir = Get-Location
-    Set-Location $scriptDir
+    $script:LIBSHELL_LATEST_VERSION = ""
     
     try {
-        # Fetch latest from remote
-        $null = git fetch origin 2>&1
-        if ($LASTEXITCODE -ne 0) {
+        # Fetch latest release info from GitHub API
+        $apiUrl = "https://api.github.com/repos/$script:LIBSHELL_GITHUB_REPO/releases/latest"
+        $response = Invoke-RestMethod -Uri $apiUrl -Method Get -ErrorAction Stop
+        
+        $latestTag = $response.tag_name
+        if (-not $latestTag) {
             return $false
         }
         
-        # Get local and remote revisions
-        $localRev = git rev-parse HEAD 2>&1
-        $remoteRev = git rev-parse origin/HEAD 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            $remoteRev = git rev-parse origin/main 2>&1
-        }
-        if ($LASTEXITCODE -ne 0) {
-            $remoteRev = git rev-parse origin/master 2>&1
-        }
+        $script:LIBSHELL_LATEST_VERSION = $latestTag
         
-        if ($localRev -ne $remoteRev) {
-            # Check if local is behind remote
-            $null = git merge-base --is-ancestor $localRev $remoteRev 2>&1
-            if ($LASTEXITCODE -eq 0) {
-                $script:LIBSHELL_UPDATE_AVAILABLE = $true
-                return $true
-            }
+        # Compare versions (strip 'v' prefix if present)
+        $currentVer = $script:LIBSHELL_VERSION -replace '^v', ''
+        $latestVer = $latestTag -replace '^v', ''
+        
+        if ($currentVer -ne $latestVer) {
+            $script:LIBSHELL_UPDATE_AVAILABLE = $true
+            return $true
         }
         
         return $false
     }
-    finally {
-        Set-Location $originalDir
+    catch {
+        return $false
     }
 }
 
-# Update libshell from remote repository
+# Update libshell from GitHub Release
 function Update-Libshell {
     <#
     .SYNOPSIS
-        Update libshell from the remote git repository.
+        Update libshell from GitHub Release.
     .DESCRIPTION
-        Checks for updates and pulls the latest changes from the remote repository.
+        Checks for updates and downloads the latest release from GitHub.
     .EXAMPLE
         Update-Libshell
     #>
     [CmdletBinding()]
     param()
     
-    # Check if git is available
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-        Write-LogError "[libshell] git command not found, cannot update" $script:LIBSHELL_CMD_NOT_FOUND | Out-Null
-        return $false
-    }
-    
-    # Get script directory
+    # Get script directory (installation directory)
     $scriptDir = Split-Path -Parent $MyInvocation.ScriptName
     if (-not $scriptDir) {
         $scriptDir = $PSScriptRoot
     }
     
-    # Check if it's a git repository
-    if (-not (Test-Path (Join-Path $scriptDir ".git"))) {
-        Write-LogError "[libshell] Not a git repository, cannot update" $script:LIBSHELL_DEFAULT_ERR | Out-Null
+    if (-not $scriptDir -or -not (Test-Path $scriptDir)) {
+        Write-LogError "[libshell] Cannot determine installation directory" $script:LIBSHELL_DEFAULT_ERR | Out-Null
         return $false
     }
     
-    # Save current location
-    $originalDir = Get-Location
-    Set-Location $scriptDir
+    # Check for updates
+    $hasUpdates = _CheckLibshellUpdate
+    
+    if (-not $hasUpdates -and -not $script:LIBSHELL_UPDATE_AVAILABLE) {
+        if ($env:LIBSHELL_QUIET -ne "1") {
+            Write-Host "[libshell] Already up-to-date (v$script:LIBSHELL_VERSION)" -ForegroundColor Green
+        }
+        return $true
+    }
+    
+    $version = $script:LIBSHELL_LATEST_VERSION
+    if (-not $version) {
+        Write-LogError "[libshell] Could not determine latest version" $script:LIBSHELL_DEFAULT_ERR | Out-Null
+        return $false
+    }
+    
+    if ($env:LIBSHELL_QUIET -ne "1") {
+        Write-Host "[libshell] Updating from v$script:LIBSHELL_VERSION to $version..." -ForegroundColor Yellow
+    }
     
     try {
-        # Check for updates
-        $hasUpdates = _CheckLibshellUpdate
+        # Create temporary directory
+        $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "libshell-update-$([guid]::NewGuid().ToString('N').Substring(0,8))"
+        New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
+        $tmpFile = Join-Path $tmpDir "libshell.tar.gz"
         
-        if (-not $hasUpdates -and -not $script:LIBSHELL_UPDATE_AVAILABLE) {
-            if ($env:LIBSHELL_QUIET -ne "1") {
-                Write-Host "[libshell] Already up-to-date (v$script:LIBSHELL_VERSION)" -ForegroundColor Green
+        # Download release tarball
+        $downloadUrl = "https://github.com/$script:LIBSHELL_GITHUB_REPO/releases/download/$version/libshell-$version.tar.gz"
+        
+        try {
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $tmpFile -ErrorAction Stop
+        }
+        catch {
+            # Fallback: try source tarball from GitHub
+            $downloadUrl = "https://github.com/$script:LIBSHELL_GITHUB_REPO/archive/refs/tags/$version.tar.gz"
+            try {
+                Invoke-WebRequest -Uri $downloadUrl -OutFile $tmpFile -ErrorAction Stop
             }
-            return $true
+            catch {
+                Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+                Write-LogError "[libshell] Failed to download release $version" $script:LIBSHELL_FILE_IO_ERR | Out-Null
+                return $false
+            }
         }
         
-        # Check for local modifications
-        $status = git status --porcelain 2>&1
-        if ($status) {
-            Write-LogError "[libshell] Local modifications detected. Please commit or stash changes before updating." $script:LIBSHELL_DEFAULT_ERR | Out-Null
+        # Extract tarball
+        $extractDir = Join-Path $tmpDir "extract"
+        New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+        
+        # Use tar command (available on all modern systems)
+        $tarResult = tar -xzf $tmpFile -C $extractDir 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+            Write-LogError "[libshell] Failed to extract release" $script:LIBSHELL_FILE_IO_ERR | Out-Null
             return $false
         }
         
-        # Perform the update
+        # Find extracted directory
+        $sourceDir = Get-ChildItem -Path $extractDir -Directory | Where-Object { $_.Name -like "libshell*" } | Select-Object -First 1
+        if (-not $sourceDir) {
+            $sourceDir = Get-Item $extractDir
+        } else {
+            $sourceDir = $sourceDir.FullName
+        }
+        
+        # Copy files to installation directory
+        $filesToCopy = @("common.sh", "lib.bash", "lib.zsh", "lib.ps1")
+        foreach ($file in $filesToCopy) {
+            $srcFile = Join-Path $sourceDir $file
+            if (Test-Path $srcFile) {
+                Copy-Item -Path $srcFile -Destination (Join-Path $scriptDir $file) -Force
+            }
+        }
+        
+        # Cleanup
+        Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+        
         if ($env:LIBSHELL_QUIET -ne "1") {
-            Write-Host "[libshell] Updating from remote..." -ForegroundColor Yellow
+            Write-Host "[libshell] Updated successfully to $version" -ForegroundColor Green
+            Write-Host "[libshell] Please restart your shell or re-source the library to apply changes." -ForegroundColor Yellow
         }
-        
-        $result = git pull --ff-only origin 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            # Get new version
-            $versionLine = Get-Content (Join-Path $scriptDir "lib.ps1") | Where-Object { $_ -match '^\$script:LIBSHELL_VERSION\s*=' }
-            $newVersion = if ($versionLine -match '"([^"]+)"') { $matches[1] } else { "unknown" }
-            
-            if ($env:LIBSHELL_QUIET -ne "1") {
-                Write-Host "[libshell] Updated successfully to v$newVersion" -ForegroundColor Green
-                Write-Host "[libshell] Please restart your shell or re-source the library to apply changes." -ForegroundColor Yellow
-            }
-            return $true
-        }
-        else {
-            Write-LogError "[libshell] Update failed. There may be conflicts with local changes." $script:LIBSHELL_DEFAULT_ERR | Out-Null
-            Write-LogError "[libshell] Try: cd $scriptDir; git status" $script:LIBSHELL_DEFAULT_ERR | Out-Null
-            return $false
-        }
+        return $true
     }
-    finally {
-        Set-Location $originalDir
+    catch {
+        Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-LogError "[libshell] Update failed: $_" $script:LIBSHELL_DEFAULT_ERR | Out-Null
+        return $false
     }
 }
 

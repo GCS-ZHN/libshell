@@ -4,25 +4,55 @@ A cross-platform shell utility library for common operations, supporting **Bash*
 
 ## Installation
 
+### Quick Install (Recommended)
+
 ```bash
-# Clone the repository
-git clone https://github.com/GCS-ZHN/libshell.git
+# Using curl
+curl -fsSL https://raw.githubusercontent.com/GCS-ZHN/libshell/main/install.sh | bash
+
+# Using wget
+wget -qO- https://raw.githubusercontent.com/GCS-ZHN/libshell/main/install.sh | bash
+```
+
+The installer will:
+- Download the latest release to `~/.libshell`
+- Auto-detect your shell and add the source line to your config
+
+### Install Options
+
+```bash
+# Install to custom directory
+curl -fsSL https://raw.githubusercontent.com/GCS-ZHN/libshell/main/install.sh | bash -s -- -d /opt/libshell
+
+# Install specific version
+curl -fsSL https://raw.githubusercontent.com/GCS-ZHN/libshell/main/install.sh | bash -s -- -v v1.0.0
+
+# Configure for specific shell
+curl -fsSL https://raw.githubusercontent.com/GCS-ZHN/libshell/main/install.sh | bash -s -- -s zsh
+```
+
+### Manual Installation
+
+```bash
+# Download and extract
+VERSION=v1.0.0
+curl -fsSL "https://github.com/GCS-ZHN/libshell/releases/download/${VERSION}/libshell-${VERSION}.tar.gz" | tar -xz -C ~/.libshell --strip-components=1
 
 # For Bash users, add to ~/.bashrc
-source /path/to/libshell/lib.bash
+source ~/.libshell/lib.bash
 
 # For Zsh users, add to ~/.zshrc
-source /path/to/libshell/lib.zsh
+source ~/.libshell/lib.zsh
 ```
 
 ### PowerShell
 
 ```powershell
 # Dot-source in your PowerShell profile ($PROFILE)
-. /path/to/libshell/lib.ps1
+. ~/.libshell/lib.ps1
 
-# Or load temporarily in current session
-. C:\path\to\libshell\lib.ps1
+# Or on Windows
+. $env:USERPROFILE\.libshell\lib.ps1
 ```
 
 To find your PowerShell profile location:
@@ -32,10 +62,10 @@ echo $PROFILE
 
 ## Auto-Update
 
-libshell can automatically check for updates when loaded. Configure with environment variables:
+libshell can automatically check for updates when loaded. Updates are downloaded from GitHub Releases (no git required).
 
 ```bash
-# Enable auto-update (will pull updates automatically)
+# Enable auto-update (will download updates automatically)
 export LIBSHELL_AUTO_UPDATE=1
 
 # Or just get notified about available updates (default behavior)

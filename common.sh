@@ -401,84 +401,107 @@ fi
 # Auto-update Functions
 # =============================================================================
 
+# GitHub repository for updates
+LIBSHELL_GITHUB_REPO="${LIBSHELL_GITHUB_REPO:-GCS-ZHN/libshell}"
+
+# Internal helper: download content from URL
+# Usage: __libshell_download URL [OUTPUT_FILE]
+# If OUTPUT_FILE is omitted, outputs to stdout
+__libshell_download() {
+    local url="$1"
+    local output="$2"
+    
+    if command -v curl >/dev/null 2>&1; then
+        if [ -n "$output" ]; then
+            curl -fsSL "$url" -o "$output" 2>/dev/null
+        else
+            curl -fsSL "$url" 2>/dev/null
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if [ -n "$output" ]; then
+            wget -q "$url" -O "$output" 2>/dev/null
+        else
+            wget -qO- "$url" 2>/dev/null
+        fi
+    else
+        return 1
+    fi
+}
+
+# Internal helper: parse JSON value (simple, no jq dependency)
+# Usage: __libshell_json_value JSON KEY
+__libshell_json_value() {
+    local json="$1"
+    local key="$2"
+    echo "$json" | grep -o "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | head -1 | \
+        sed 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/'
+}
+
 # Internal function to check if updates are available
 # Returns: 0 if updates available, 1 if up-to-date, 2 if error
 # Sets: __LIBSHELL_UPDATE_AVAILABLE=1 if updates found
+# Sets: __LIBSHELL_LATEST_VERSION to the latest version tag
 __libshell_check_update() {
     __LIBSHELL_UPDATE_AVAILABLE=0
+    __LIBSHELL_LATEST_VERSION=""
     
-    # Check if git is available
-    if ! command -v git >/dev/null 2>&1; then
+    # Check if curl or wget is available
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
         return 2
     fi
     
-    # Check if LIBSHELL_DIR is a git repository
-    if [ ! -d "${LIBSHELL_DIR}/.git" ]; then
+    # Fetch latest release info from GitHub API
+    local api_url="https://api.github.com/repos/${LIBSHELL_GITHUB_REPO}/releases/latest"
+    local response
+    response=$(__libshell_download "$api_url")
+    
+    if [ -z "$response" ]; then
         return 2
     fi
     
-    # Save current directory and change to LIBSHELL_DIR
-    local original_dir="$PWD"
-    cd "$LIBSHELL_DIR" || return 2
+    # Parse tag_name from response
+    local latest_tag
+    latest_tag=$(__libshell_json_value "$response" "tag_name")
     
-    # Fetch latest from remote (quietly)
-    if ! git fetch origin --quiet 2>/dev/null; then
-        cd "$original_dir"
+    if [ -z "$latest_tag" ]; then
         return 2
     fi
     
-    # Check if local is behind remote
-    local local_rev remote_rev
-    local_rev=$(git rev-parse HEAD 2>/dev/null)
-    remote_rev=$(git rev-parse origin/HEAD 2>/dev/null || git rev-parse origin/main 2>/dev/null || git rev-parse origin/master 2>/dev/null)
+    __LIBSHELL_LATEST_VERSION="$latest_tag"
     
-    if [ -z "$local_rev" ] || [ -z "$remote_rev" ]; then
-        cd "$original_dir"
-        return 2
+    # Compare versions (strip 'v' prefix if present)
+    local current_ver="${LIBSHELL_VERSION#v}"
+    local latest_ver="${latest_tag#v}"
+    
+    if [ "$current_ver" != "$latest_ver" ]; then
+        __LIBSHELL_UPDATE_AVAILABLE=1
+        return 0
     fi
     
-    if [ "$local_rev" != "$remote_rev" ]; then
-        # Check if local is behind (not ahead or diverged)
-        if git merge-base --is-ancestor "$local_rev" "$remote_rev" 2>/dev/null; then
-            __LIBSHELL_UPDATE_AVAILABLE=1
-            cd "$original_dir"
-            return 0
-        fi
-    fi
-    
-    cd "$original_dir"
     return 1
 }
 
-# Update libshell from remote repository
+# Update libshell from GitHub Release
 # Usage: update_libshell
 # Returns: 0 on success, 1 if already up-to-date, 2 on error
 update_libshell() {
-    # Check if git is available
-    if ! command -v git >/dev/null 2>&1; then
-        log_err "[libshell] git command not found, cannot update" ${LIBSHELL_CMD_NOT_FOUND}
+    # Check if curl or wget is available
+    if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
+        log_err "[libshell] Neither curl nor wget found, cannot update" ${LIBSHELL_CMD_NOT_FOUND}
         return 2
     fi
     
-    # Check if LIBSHELL_DIR is set and is a git repository
-    if [ -z "$LIBSHELL_DIR" ] || [ ! -d "${LIBSHELL_DIR}/.git" ]; then
-        log_err "[libshell] Not a git repository, cannot update" ${LIBSHELL_DEFAULT_ERR}
+    # Check if LIBSHELL_DIR is set
+    if [ -z "$LIBSHELL_DIR" ]; then
+        log_err "[libshell] LIBSHELL_DIR not set, cannot update" ${LIBSHELL_DEFAULT_ERR}
         return 2
     fi
-    
-    # Save current directory
-    local original_dir="$PWD"
-    cd "$LIBSHELL_DIR" || {
-        log_err "[libshell] Failed to enter directory: $LIBSHELL_DIR" ${LIBSHELL_FILE_IO_ERR}
-        return 2
-    }
     
     # Check for updates first
     __libshell_check_update
     local check_result=$?
     
     if [ $check_result -eq 2 ]; then
-        cd "$original_dir"
         log_err "[libshell] Failed to check for updates" ${LIBSHELL_DEFAULT_ERR}
         return 2
     fi
@@ -487,37 +510,83 @@ update_libshell() {
         if [ "$LIBSHELL_QUIET" != "1" ]; then
             echo -e "\033[32m[libshell] Already up-to-date (v${LIBSHELL_VERSION})\033[0m"
         fi
-        cd "$original_dir"
         return 1
     fi
     
-    # Check for local modifications
-    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        log_err "[libshell] Local modifications detected. Please commit or stash changes before updating." ${LIBSHELL_DEFAULT_ERR}
-        cd "$original_dir"
+    local version="${__LIBSHELL_LATEST_VERSION}"
+    if [ -z "$version" ]; then
+        log_err "[libshell] Could not determine latest version" ${LIBSHELL_DEFAULT_ERR}
         return 2
     fi
     
-    # Perform the update
     if [ "$LIBSHELL_QUIET" != "1" ]; then
-        echo -e "\033[33m[libshell] Updating from remote...\033[0m"
+        echo -e "\033[33m[libshell] Updating from v${LIBSHELL_VERSION} to ${version}...\033[0m"
     fi
     
-    if git pull --ff-only origin 2>/dev/null; then
-        local new_version
-        new_version=$(grep -E "^export LIBSHELL_VERSION=" "${LIBSHELL_DIR}/common.sh" 2>/dev/null | cut -d'=' -f2)
-        if [ "$LIBSHELL_QUIET" != "1" ]; then
-            echo -e "\033[32m[libshell] Updated successfully to v${new_version:-unknown}\033[0m"
-            echo -e "\033[33m[libshell] Please restart your shell or re-source the library to apply changes.\033[0m"
+    # Create temporary directory
+    local tmp_dir
+    tmp_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'libshell')
+    local tmp_file="${tmp_dir}/libshell.tar.gz"
+    
+    # Download release tarball
+    local download_url="https://github.com/${LIBSHELL_GITHUB_REPO}/releases/download/${version}/libshell-${version}.tar.gz"
+    
+    if ! __libshell_download "$download_url" "$tmp_file"; then
+        # Fallback: try source tarball from GitHub
+        download_url="https://github.com/${LIBSHELL_GITHUB_REPO}/archive/refs/tags/${version}.tar.gz"
+        if ! __libshell_download "$download_url" "$tmp_file"; then
+            rm -rf "$tmp_dir"
+            log_err "[libshell] Failed to download release ${version}" ${LIBSHELL_FILE_IO_ERR}
+            return 2
         fi
-        cd "$original_dir"
-        return 0
-    else
-        log_err "[libshell] Update failed. There may be conflicts with local changes." ${LIBSHELL_DEFAULT_ERR}
-        log_err "[libshell] Try: cd $LIBSHELL_DIR && git status" ${LIBSHELL_DEFAULT_ERR}
-        cd "$original_dir"
+    fi
+    
+    # Extract to temporary location
+    local extract_dir="${tmp_dir}/extract"
+    mkdir -p "$extract_dir"
+    
+    if ! tar -xzf "$tmp_file" -C "$extract_dir" 2>/dev/null; then
+        rm -rf "$tmp_dir"
+        log_err "[libshell] Failed to extract release" ${LIBSHELL_FILE_IO_ERR}
         return 2
     fi
+    
+    # Find extracted directory (handle both libshell-vX.X.X and libshell-X.X.X patterns)
+    local source_dir
+    source_dir=$(find "$extract_dir" -maxdepth 1 -type d -name "libshell*" | head -1)
+    
+    if [ -z "$source_dir" ]; then
+        # Files may be extracted directly without subdirectory
+        source_dir="$extract_dir"
+    fi
+    
+    # Copy files to LIBSHELL_DIR (preserve existing config)
+    local files_to_copy="common.sh lib.bash lib.zsh lib.ps1"
+    local copy_failed=0
+    
+    for file in $files_to_copy; do
+        if [ -f "${source_dir}/${file}" ]; then
+            if ! cp "${source_dir}/${file}" "${LIBSHELL_DIR}/${file}"; then
+                copy_failed=1
+                break
+            fi
+        fi
+    done
+    
+    # Cleanup
+    rm -rf "$tmp_dir"
+    
+    if [ $copy_failed -eq 1 ]; then
+        log_err "[libshell] Failed to copy files to ${LIBSHELL_DIR}" ${LIBSHELL_FILE_IO_ERR}
+        return 2
+    fi
+    
+    if [ "$LIBSHELL_QUIET" != "1" ]; then
+        echo -e "\033[32m[libshell] Updated successfully to ${version}\033[0m"
+        echo -e "\033[33m[libshell] Please restart your shell or re-source the library to apply changes.\033[0m"
+    fi
+    
+    return 0
 }
 
 # Auto-update check on load (if enabled)
