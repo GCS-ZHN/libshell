@@ -167,3 +167,73 @@ GitHub Actions runs tests on:
 - Windows (pwsh only)
 
 Workflow file: `.github/workflows/ci.yml`
+
+## Versioning and Releases
+
+### Version Management
+
+- Version is defined in `common.sh` (`LIBSHELL_VERSION`) and `lib.ps1` (`$script:LIBSHELL_VERSION`)
+- **Both files must have the same version number** (e.g., `1.0.0`)
+- Test files may assert the version - update them when bumping version
+- Version format: `MAJOR.MINOR.PATCH` (Semantic Versioning)
+- Git tags use `v` prefix: `v1.0.0`
+
+### CHANGELOG.md Format
+
+Maintain `CHANGELOG.md` following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/):
+
+```markdown
+## [Unreleased]
+
+## [X.Y.Z] - YYYY-MM-DD
+
+### Added
+- New features
+
+### Changed
+- Changes in existing functionality
+
+### Fixed
+- Bug fixes
+
+### Removed
+- Removed features
+```
+
+**Important**: The CI workflow extracts the section for the tagged version and includes it in the GitHub Release notes.
+
+### Creating a Release
+
+1. **Update version numbers** in:
+   - `common.sh`: `export LIBSHELL_VERSION=X.Y.Z`
+   - `lib.ps1`: `$script:LIBSHELL_VERSION = "X.Y.Z"`
+   - Test files if they assert version
+
+2. **Update CHANGELOG.md**:
+   - Move items from `[Unreleased]` to new version section
+   - Add release date: `## [X.Y.Z] - YYYY-MM-DD`
+   - Add comparison link at bottom
+
+3. **Commit, tag, and push**:
+   ```bash
+   git add -A
+   git commit -m "chore: release vX.Y.Z"
+   git tag vX.Y.Z
+   git push origin main --tags
+   ```
+
+4. **CI will automatically**:
+   - Run all tests
+   - Extract changelog section for this version
+   - Create GitHub Release with:
+     - Changelog content
+     - Installation instructions
+     - `libshell-vX.Y.Z.tar.gz` asset
+
+### Release Notes Content
+
+GitHub Release notes are auto-generated from:
+1. **Changelog section** for the version (from CHANGELOG.md)
+2. **Installation instructions** (hardcoded in CI workflow)
+
+To modify installation instructions in release notes, edit `.github/workflows/ci.yml` release job.
