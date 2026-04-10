@@ -11,7 +11,7 @@ LIBSHELL_COMMON_LOADED=1
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-export LIBSHELL_VERSION=1.0.1
+export LIBSHELL_VERSION=1.0.2
 
 LIBSHELL_DEFAULT_OK=0
 LIBSHELL_DEFAULT_ERR=1
@@ -561,63 +561,55 @@ update_libshell() {
         echo -e "\033[33m[libshell] Updating from v${LIBSHELL_VERSION} to ${version}...\033[0m"
     fi
     
-    # Create temporary directory
+    # Create temporary directory for download and extraction
     local tmp_dir
     tmp_dir=$(mktemp -d 2>/dev/null || mktemp -d -t 'libshell')
-    local tmp_file="${tmp_dir}/libshell.tar.gz"
+    local backup_dir="${LIBSHELL_DIR}.bak"
     
     # Download release tarball
     local download_url="https://github.com/${LIBSHELL_GITHUB_REPO}/releases/download/${version}/libshell-${version}.tar.gz"
+    local tmp_file="${tmp_dir}/libshell.tar.gz"
     
     if ! __libshell_download "$download_url" "$tmp_file"; then
-        # Fallback: try source tarball from GitHub
-        download_url="https://github.com/${LIBSHELL_GITHUB_REPO}/archive/refs/tags/${version}.tar.gz"
-        if ! __libshell_download "$download_url" "$tmp_file"; then
+        rm -rf "$tmp_dir"
+        log_err "[libshell] Failed to download release ${version}" ${LIBSHELL_FILE_IO_ERR}
+        return 2
+    fi
+    
+    # Backup existing installation
+    if [ -d "$LIBSHELL_DIR" ]; then
+        if [ "$LIBSHELL_QUIET" != "1" ]; then
+            echo -e "[libshell] Backing up existing installation to ${backup_dir}"
+        fi
+        rm -rf "$backup_dir"
+        if ! mv "$LIBSHELL_DIR" "$backup_dir"; then
             rm -rf "$tmp_dir"
-            log_err "[libshell] Failed to download release ${version}" ${LIBSHELL_FILE_IO_ERR}
+            log_err "[libshell] Failed to backup existing installation" ${LIBSHELL_FILE_IO_ERR}
             return 2
         fi
     fi
     
-    # Extract to temporary location
-    local extract_dir="${tmp_dir}/extract"
-    mkdir -p "$extract_dir"
+    # Extract release directly to LIBSHELL_DIR
+    if ! mkdir -p "$LIBSHELL_DIR"; then
+        # Restore backup on failure
+        mv "$backup_dir" "$LIBSHELL_DIR"
+        rm -rf "$tmp_dir"
+        log_err "[libshell] Failed to create directory ${LIBSHELL_DIR}" ${LIBSHELL_FILE_IO_ERR}
+        return 2
+    fi
     
-    if ! tar -xzf "$tmp_file" -C "$extract_dir" 2>/dev/null; then
+    if ! tar -xzf "$tmp_file" -C "$LIBSHELL_DIR" --strip-components=1; then
+        # Restore backup on failure
+        rm -rf "$LIBSHELL_DIR"
+        mv "$backup_dir" "$LIBSHELL_DIR"
         rm -rf "$tmp_dir"
         log_err "[libshell] Failed to extract release" ${LIBSHELL_FILE_IO_ERR}
         return 2
     fi
     
-    # Find extracted directory (handle both libshell-vX.X.X and libshell-X.X.X patterns)
-    local source_dir
-    source_dir=$(find "$extract_dir" -maxdepth 1 -type d -name "libshell*" | head -1)
-    
-    if [ -z "$source_dir" ]; then
-        # Files may be extracted directly without subdirectory
-        source_dir="$extract_dir"
-    fi
-    
-    # Copy files to LIBSHELL_DIR (preserve existing config)
-    local files_to_copy="common.sh lib.bash lib.zsh lib.ps1"
-    local copy_failed=0
-    
-    for file in $files_to_copy; do
-        if [ -f "${source_dir}/${file}" ]; then
-            if ! cp "${source_dir}/${file}" "${LIBSHELL_DIR}/${file}"; then
-                copy_failed=1
-                break
-            fi
-        fi
-    done
-    
-    # Cleanup
+    # Cleanup: remove backup and temp directory
+    rm -rf "$backup_dir"
     rm -rf "$tmp_dir"
-    
-    if [ $copy_failed -eq 1 ]; then
-        log_err "[libshell] Failed to copy files to ${LIBSHELL_DIR}" ${LIBSHELL_FILE_IO_ERR}
-        return 2
-    fi
     
     if [ "$LIBSHELL_QUIET" != "1" ]; then
         echo -e "\033[32m[libshell] Updated successfully to ${version}\033[0m"

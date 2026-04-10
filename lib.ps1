@@ -9,7 +9,7 @@ if ($env:LIBSHELL_PS_LOADED -eq "1") {
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-$script:LIBSHELL_VERSION = "1.0.1"
+$script:LIBSHELL_VERSION = "1.0.2"
 $script:LIBSHELL_DEFAULT_OK = 0
 $script:LIBSHELL_DEFAULT_ERR = 1
 $script:LIBSHELL_ARG_ERR = 2
@@ -640,6 +640,7 @@ function Update-Libshell {
         $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) "libshell-update-$([guid]::NewGuid().ToString('N').Substring(0,8))"
         New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
         $tmpFile = Join-Path $tmpDir "libshell.tar.gz"
+        $backupDir = "$scriptDir.bak"
         
         # Download release tarball
         $downloadUrl = "https://github.com/$script:LIBSHELL_GITHUB_REPO/releases/download/$version/libshell-$version.tar.gz"
@@ -660,36 +661,36 @@ function Update-Libshell {
             }
         }
         
-        # Extract tarball
-        $extractDir = Join-Path $tmpDir "extract"
-        New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+        # Backup existing installation
+        if (Test-Path $scriptDir) {
+            if ($env:LIBSHELL_QUIET -ne "1") {
+                Write-Host "[libshell] Backing up existing installation to ${backupDir}" -ForegroundColor Cyan
+            }
+            Remove-Item -Path $backupDir -Recurse -Force -ErrorAction SilentlyContinue
+            Move-Item -Path $scriptDir -Destination $backupDir -Force
+        }
         
-        # Use tar command (available on all modern systems)
-        $tarResult = tar -xzf $tmpFile -C $extractDir 2>&1
-        if ($LASTEXITCODE -ne 0) {
+        # Extract release directly to installation directory
+        try {
+            New-Item -ItemType Directory -Path $scriptDir -Force | Out-Null
+            tar -xzf $tmpFile -C $scriptDir --strip-components=1
+            if ($LASTEXITCODE -ne 0) {
+                throw "tar extraction failed"
+            }
+        }
+        catch {
+            # Restore backup on failure
+            Remove-Item -Path $scriptDir -Recurse -Force -ErrorAction SilentlyContinue
+            if (Test-Path $backupDir) {
+                Move-Item -Path $backupDir -Destination $scriptDir -Force
+            }
             Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
             Write-LogError "[libshell] Failed to extract release" $script:LIBSHELL_FILE_IO_ERR | Out-Null
             return $false
         }
         
-        # Find extracted directory
-        $sourceDir = Get-ChildItem -Path $extractDir -Directory | Where-Object { $_.Name -like "libshell*" } | Select-Object -First 1
-        if (-not $sourceDir) {
-            $sourceDir = Get-Item $extractDir
-        } else {
-            $sourceDir = $sourceDir.FullName
-        }
-        
-        # Copy files to installation directory
-        $filesToCopy = @("common.sh", "lib.bash", "lib.zsh", "lib.ps1")
-        foreach ($file in $filesToCopy) {
-            $srcFile = Join-Path $sourceDir $file
-            if (Test-Path $srcFile) {
-                Copy-Item -Path $srcFile -Destination (Join-Path $scriptDir $file) -Force
-            }
-        }
-        
-        # Cleanup
+        # Cleanup: remove backup and temp directory
+        Remove-Item -Path $backupDir -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path $tmpDir -Recurse -Force -ErrorAction SilentlyContinue
         
         if ($env:LIBSHELL_QUIET -ne "1") {
