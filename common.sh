@@ -11,7 +11,7 @@ LIBSHELL_COMMON_LOADED=1
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-export LIBSHELL_VERSION=1.0.0
+export LIBSHELL_VERSION=1.0.1
 
 LIBSHELL_DEFAULT_OK=0
 LIBSHELL_DEFAULT_ERR=1
@@ -329,6 +329,44 @@ is_user_exist() {
         echo -e "\\033[31mUser $1 does not exist\\033[0m"
         return ${LIBSHELL_DEFAULT_ERR}
     fi
+}
+
+setup_editor() {
+    if [ "$TERM_PROGRAM" = "vscode" ]; then
+        local vscode_editors="code cursor trae"
+        for editor in $vscode_editors; do
+            if command -v "$editor" > /dev/null 2>&1; then
+                export EDITOR="$editor --wait"
+                if [ "$LIBSHELL_QUIET" != "1" ]; then
+                    echo -e "[libshell] EDITOR set to \033[32m$EDITOR\033[0m"
+                fi
+                return ${LIBSHELL_DEFAULT_OK}
+            fi
+        done
+        if [ "$LIBSHELL_QUIET" != "1" ]; then
+            echo -e "[libshell] \033[33mNo VS Code-style editor found (code, cursor, trae).\033[0m"
+            echo -e "[libshell] To install VS Code editor, visit: https://code.visualstudio.com/"
+            echo -e "[libshell] To install Cursor editor, visit: https://cursor.com/"
+            echo -e "[libshell] To install Trae editor, visit: https://trae.ai/"
+        fi
+    else
+        local terminal_editors="nano nvim vim vi"
+        for editor in $terminal_editors; do
+            if command -v "$editor" > /dev/null 2>&1; then
+                export EDITOR="$editor"
+                if [ "$LIBSHELL_QUIET" != "1" ]; then
+                    echo -e "[libshell] EDITOR set to \033[32m$EDITOR\033[0m"
+                fi
+                return ${LIBSHELL_DEFAULT_OK}
+            fi
+        done
+        if [ "$LIBSHELL_QUIET" != "1" ]; then
+            echo -e "[libshell] \033[31mNo terminal editor found (tried: nano, nvim, vim, vi).\033[0m"
+            echo -e "[libshell] To install nano: \033[36msudo apt install nano\033[0m"
+            echo -e "[libshell] To install neovim: \033[36msudo apt install neovim\033[0m"
+        fi
+    fi
+    return ${LIBSHELL_DEFAULT_ERR}
 }
 
 # =============================================================================

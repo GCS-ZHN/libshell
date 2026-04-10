@@ -307,6 +307,7 @@ export -f create_link
 export -f permission2int
 export -f int2permission
 export -f is_user_exist
+export -f setup_editor
 export -f sbat
 export -f sque
 export -f __run_in_tmux_wrapper

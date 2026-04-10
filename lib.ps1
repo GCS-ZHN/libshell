@@ -9,7 +9,7 @@ if ($env:LIBSHELL_PS_LOADED -eq "1") {
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-$script:LIBSHELL_VERSION = "1.0.0"
+$script:LIBSHELL_VERSION = "1.0.1"
 $script:LIBSHELL_DEFAULT_OK = 0
 $script:LIBSHELL_DEFAULT_ERR = 1
 $script:LIBSHELL_ARG_ERR = 2
@@ -283,6 +283,56 @@ function Test-UserExist {
         Write-Host "User $UserName does not exist" -ForegroundColor Red
         return $false
     }
+}
+
+function Setup-Editor {
+    <#
+    .SYNOPSIS
+        Set the default EDITOR environment variable.
+    .DESCRIPTION
+        Detects the environment (VS Code terminal or regular terminal) and sets
+        EDITOR to an appropriate editor. VS Code-style editors use --wait flag.
+    .EXAMPLE
+        Setup-Editor
+    #>
+    [CmdletBinding()]
+    param()
+
+    if ($env:TERM_PROGRAM -eq "vscode") {
+        $vscodeEditors = @("code", "cursor", "trae")
+        foreach ($editor in $vscodeEditors) {
+            if (Get-Command $editor -ErrorAction SilentlyContinue) {
+                $env:EDITOR = "$editor --wait"
+                if ($env:LIBSHELL_QUIET -ne "1") {
+                    Write-Host "[libshell] EDITOR set to $env:EDITOR" -ForegroundColor Green
+                }
+                return $true
+            }
+        }
+        if ($env:LIBSHELL_QUIET -ne "1") {
+            Write-Host "[libshell] No VS Code-style editor found (code, cursor, trae)." -ForegroundColor Yellow
+            Write-Host "[libshell] To install VS Code: https://code.visualstudio.com/"
+            Write-Host "[libshell] To install Cursor: https://cursor.com/"
+            Write-Host "[libshell] To install Trae: https://trae.ai/"
+        }
+    } else {
+        $terminalEditors = @("nano", "nvim", "vim", "vi")
+        foreach ($editor in $terminalEditors) {
+            if (Get-Command $editor -ErrorAction SilentlyContinue) {
+                $env:EDITOR = $editor
+                if ($env:LIBSHELL_QUIET -ne "1") {
+                    Write-Host "[libshell] EDITOR set to $env:EDITOR" -ForegroundColor Green
+                }
+                return $true
+            }
+        }
+        if ($env:LIBSHELL_QUIET -ne "1") {
+            Write-Host "[libshell] No terminal editor found (tried: nano, nvim, vim, vi)." -ForegroundColor Red
+            Write-Host "[libshell] To install nano: sudo apt install nano" -ForegroundColor Cyan
+            Write-Host "[libshell] To install neovim: sudo apt install neovim" -ForegroundColor Cyan
+        }
+    }
+    return $false
 }
 
 # =============================================================================
@@ -657,6 +707,7 @@ function Update-Libshell {
 
 # Unix-style alias
 Set-Alias -Name update_libshell -Value Update-Libshell
+Set-Alias -Name setup_editor -Value Setup-Editor
 
 # =============================================================================
 # Initialization
