@@ -734,7 +734,7 @@ if ($env:LIBSHELL_UPDATE_CHECKED -ne "1") {
         # Auto-update disabled: just notify if updates available
         if (_CheckLibshellUpdate) {
             if ($env:LIBSHELL_QUIET -ne "1") {
-                Write-Host "[libshell] Updates available. Run 'Update-Libshell' or 'update_libshell' to update." -ForegroundColor Yellow
+                Write-Host "[libshell] Updates available: v$script:LIBSHELL_VERSION -> $script:LIBSHELL_LATEST_VERSION. Run 'Update-Libshell' or 'update_libshell' to update." -ForegroundColor Yellow
             }
         }
     }

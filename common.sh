@@ -632,7 +632,7 @@ if [ "${LIBSHELL_UPDATE_CHECKED:-0}" != "1" ]; then
         # Auto-update disabled: just notify if updates available
         if __libshell_check_update && [ "$__LIBSHELL_UPDATE_AVAILABLE" = "1" ]; then
             if [ "$LIBSHELL_QUIET" != "1" ]; then
-                echo -e "\033[33m[libshell] Updates available. Run 'update_libshell' to update.\033[0m"
+                echo -e "\033[33m[libshell] Updates available: v${LIBSHELL_VERSION} -> ${__LIBSHELL_LATEST_VERSION}. Run 'update_libshell' to update.\033[0m"
             fi
         fi
     fi
