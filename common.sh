@@ -422,7 +422,12 @@ __run_in_tmux_wrapper() {
         else
             random_suffix=$(date +%s)
         fi
-        tmux new -s "${cmd}_${random_suffix}" $cmd "$@"
+        
+        # Get current directory name for session naming
+        local cwd_name
+        cwd_name=$(basename "$PWD")
+        
+        tmux new -s "${cmd}_${cwd_name}_${random_suffix}" $cmd "$@"
     fi
 }
 
