@@ -9,7 +9,7 @@ if ($env:LIBSHELL_PS_LOADED -eq "1") {
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-$script:LIBSHELL_VERSION = "1.0.2"
+$script:LIBSHELL_VERSION = "1.1.0"
 $script:LIBSHELL_DEFAULT_OK = 0
 $script:LIBSHELL_DEFAULT_ERR = 1
 $script:LIBSHELL_ARG_ERR = 2

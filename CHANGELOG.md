@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-10
+
+### Changed
+- **`run_in_tmux`**: tmux session name format changed to `<cmd>_<cwd_name>_<random_id>` for better identification
+
+### Fixed
+- **Update notification**: Now shows both current and available versions (e.g., "v1.0.2 -> v1.1.0")
+
 ## [1.0.2] - 2026-04-10
 
 ### Fixed
@@ -51,7 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README with installation and usage instructions
 - AGENTS.md guidelines for AI coding agents
 
-[Unreleased]: https://github.com/GCS-ZHN/libshell/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/GCS-ZHN/libshell/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.1.0
 [1.0.2]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.0.2
 [1.0.1]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.0.1
 [1.0.0]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.0.0

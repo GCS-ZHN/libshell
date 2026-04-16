@@ -28,7 +28,7 @@ test_start "lib.zsh loads common.sh (LIBSHELL_COMMON_LOADED)"
 assert_equals "1" "$LIBSHELL_COMMON_LOADED"
 
 test_start "LIBSHELL_VERSION is exported"
-assert_equals "1.0.2" "$LIBSHELL_VERSION"
+assert_equals "1.1.0" "$LIBSHELL_VERSION"
 
 # =============================================================================
 # Test: is_source function (zsh-specific)
