@@ -11,7 +11,7 @@ LIBSHELL_COMMON_LOADED=1
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-export LIBSHELL_VERSION=1.1.0
+export LIBSHELL_VERSION=1.1.1
 
 LIBSHELL_DEFAULT_OK=0
 LIBSHELL_DEFAULT_ERR=1
@@ -425,7 +425,7 @@ __run_in_tmux_wrapper() {
         
         # Get current directory name for session naming
         local cwd_name
-        cwd_name=$(basename "$PWD")
+        cwd_name=$(basename "$PWD" | tr '#:.' '_')
         
         tmux new -s "${cmd}_${cwd_name}_${random_suffix}" $cmd "$@"
     fi
