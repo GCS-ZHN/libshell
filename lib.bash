@@ -256,13 +256,13 @@ export -f copy_access
 # Tmux Functions (Bash-specific alias handling)
 # =============================================================================
 
-function run_in_tmux() {
+function trun() {
     # Create an alias for a command to run it in a tmux session
-    # Usage: run_in_tmux <cmd>
+    # Usage: trun <cmd>
     # If already in tmux, the command runs directly without creating nested session
     # Also creates <cmd>.raw alias to invoke the original command directly
     if [ "$#" -ne 1 ]; then
-        log_err "Usage: run_in_tmux <cmd>" ${LIBSHELL_ARG_ERR}
+        log_err "Usage: trun <cmd>" ${LIBSHELL_ARG_ERR}
         return $?
     fi
 
@@ -415,15 +415,10 @@ export -f __libshell_deprecated
 # Tmux Deprecated Functions
 # =============================================================================
 
-function old_tmux_attach() {
-    __libshell_deprecated old_tmux_attach tattach "$@"
+function run_in_tmux() {
+    __libshell_deprecated run_in_tmux trun "$@"
 }
-export -f old_tmux_attach
-
-function old_tmux_kill() {
-    __libshell_deprecated old_tmux_kill tkill "$@"
-}
-export -f old_tmux_kill
+export -f run_in_tmux
 
 
 # =============================================================================
