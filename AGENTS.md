@@ -243,3 +243,23 @@ GitHub Release notes are auto-generated from:
 2. **Installation instructions** (hardcoded in CI workflow)
 
 To modify installation instructions in release notes, edit `.github/workflows/ci.yml` release job.
+
+### Post-Push Monitoring
+
+After pushing code or tags, **always monitor GitHub Actions until success**:
+```bash
+# Watch workflow status
+gh run list --limit 3
+
+# View failure logs
+gh run view <run-id> --log-failed
+
+# Wait for completion
+gh run watch <run-id>
+```
+
+**Never consider the task complete until CI passes.** Common issues to watch for:
+- Version test race conditions (test files vs library version mismatch)
+- Export errors ("not a function" indicates function defined after export statement)
+- Network/auth failures in macOS runners
+- Permission/ACL issues on specific OS platforms

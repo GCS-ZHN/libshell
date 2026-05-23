@@ -287,18 +287,12 @@ function trun() {
         return $?
     fi
     
-    # Check if the command exists
+# Check if the command exists
     if ! command -v "$cmd" >/dev/null; then
         log_err "Command '$cmd' not found" ${LIBSHELL_CMD_NOT_FOUND}
         return $?
     fi
     
-    # Check if the command exists
-    if ! command -v "$cmd" >/dev/null; then
-        log_err "Command '$cmd' not found" ${LIBSHELL_CMD_NOT_FOUND}
-        return $?
-    fi
-
     # Create alias for tmux wrapper
     alias $cmd="__run_in_tmux_wrapper $cmd"
     # Create alias for raw command (useful for --help, --version, etc.)
@@ -309,7 +303,7 @@ function trun() {
     echo "  $cmd.raw -> original command (for --help, --version, etc.)"
     return ${LIBSHELL_DEFAULT_OK}
 }
-export -f run_in_tmux
+export -f trun
 
 
 function tattach() {
