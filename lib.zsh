@@ -327,6 +327,61 @@ function tattach() {
 
 
 # =============================================================================
+# Tmux Kill Functions
+# =============================================================================
+
+function tkill() {
+    # Kill tmux sessions by prefix
+    if [[ "$#" -ne 1 ]]; then
+        log_err "Usage: tkill <SESSION_PREFIX>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+
+    __libshell_require_cmd tmux || return $?
+
+    local prefix=$1
+    local -a sessions
+    sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${prefix}")}")
+
+    if [[ ${#sessions[@]} -eq 0 ]]; then
+        log_err "No tmux sessions found with prefix '${prefix}'" ${LIBSHELL_DEFAULT_ERR}
+        return $?
+    fi
+
+    if [[ ${#sessions[@]} -eq 1 ]]; then
+        echo "Kill session '${sessions[1]}'? (y/n)"
+        read -r confirm
+        if [[ "$confirm" = "y" ]]; then
+            tmux kill-session -t "${sessions[1]}"
+            echo "Session '${sessions[1]}' killed."
+        else
+            echo "Cancelled."
+        fi
+    else
+        echo "Multiple sessions found with prefix '${prefix}':"
+        local -a options=("All sessions" "Cancel")
+        PS3="Select session to kill (0 to cancel): "
+        select opt in "${options[@]}" "${sessions[@]}"; do
+            if [[ "$opt" = "All sessions" ]]; then
+                for session in "${sessions[@]}"; do
+                    tmux kill-session -t "$session"
+                done
+                echo "All ${#sessions[@]} sessions killed."
+                break
+            elif [[ "$opt" = "Cancel" ]]; then
+                echo "Cancelled."
+                break
+            elif [[ -n "$opt" ]]; then
+                tmux kill-session -t "$opt"
+                echo "Session '$opt' killed."
+                break
+            fi
+        done
+    fi
+}
+
+
+# =============================================================================
 # Initialization Message
 # =============================================================================
 if is_source; then
