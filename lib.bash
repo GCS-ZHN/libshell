@@ -294,6 +294,40 @@ function run_in_tmux() {
 export -f run_in_tmux
 
 
+function tattach() {
+    # Attach to a tmux session by prefix
+    if [ "$#" -ne 1 ]; then
+        log_err "Usage: tattach <SESSION_PREFIX>" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+
+    __libshell_require_cmd tmux || return $?
+
+    local prefix=$1
+    local -a sessions
+    mapfile -t sessions < <(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${prefix}")
+
+    if [ ${#sessions[@]} -eq 0 ]; then
+        log_err "No tmux sessions found with prefix '${prefix}'" ${LIBSHELL_DEFAULT_ERR}
+        return $?
+    fi
+
+    if [ ${#sessions[@]} -eq 1 ]; then
+        tmux attach-session -t "${sessions[0]}"
+    else
+        echo "Multiple sessions found with prefix '${prefix}':"
+        PS3="Select session number (1-${#sessions[@]}): "
+        select session in "${sessions[@]}"; do
+            if [ -n "$session" ]; then
+                tmux attach-session -t "$session"
+                break
+            fi
+        done
+    fi
+}
+export -f tattach
+
+
 # =============================================================================
 # Export common functions for subshells (bash-specific)
 # =============================================================================
