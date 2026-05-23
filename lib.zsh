@@ -302,19 +302,23 @@ function tattach() {
 
     __libshell_require_cmd tmux || return $?
 
-    local prefix=$1
+    local prefix=${1:-}
     local -a sessions
-    sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${prefix}")}")
+    if [[ -z "$prefix" ]]; then
+        sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null)}")
+    else
+        sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${prefix}")}")
+    fi
 
     if [[ ${#sessions[@]} -eq 0 ]]; then
-        log_err "No tmux sessions found with prefix '${prefix}'" ${LIBSHELL_DEFAULT_ERR}
+        log_err "No tmux sessions found${prefix:+ with prefix '${prefix}'}" ${LIBSHELL_DEFAULT_ERR}
         return $?
     fi
 
     if [[ ${#sessions[@]} -eq 1 ]]; then
         tmux attach-session -t "${sessions[1]}"
     else
-        echo "Multiple sessions found with prefix '${prefix}':"
+        echo "Multiple sessions found${prefix:+ with prefix '${prefix}'}:"
         PS3="Select session number (1-${#sessions[@]}): "
         select session in "${sessions[@]}"; do
             if [[ -n "$session" ]]; then
@@ -339,12 +343,16 @@ function tkill() {
 
     __libshell_require_cmd tmux || return $?
 
-    local prefix=$1
+    local prefix=${1:-}
     local -a sessions
-    sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${prefix}")}")
+    if [[ -z "$prefix" ]]; then
+        sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null)}")
+    else
+        sessions=("${(@f)$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep "^${prefix}")}")
+    fi
 
     if [[ ${#sessions[@]} -eq 0 ]]; then
-        log_err "No tmux sessions found with prefix '${prefix}'" ${LIBSHELL_DEFAULT_ERR}
+        log_err "No tmux sessions found${prefix:+ with prefix '${prefix}'}" ${LIBSHELL_DEFAULT_ERR}
         return $?
     fi
 
@@ -358,7 +366,7 @@ function tkill() {
             echo "Cancelled."
         fi
     else
-        echo "Multiple sessions found with prefix '${prefix}':"
+        echo "Multiple sessions found${prefix:+ with prefix '${prefix}'}:"
         local -a options=("All sessions" "Cancel")
         PS3="Select session to kill (0 to cancel): "
         select opt in "${options[@]}" "${sessions[@]}"; do
