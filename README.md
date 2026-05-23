@@ -284,6 +284,8 @@ Write-LogInfo "Information message"
 | Function | Description | Usage | Support |
 |----------|-------------|-------|---------|
 | `run_in_tmux` | Create alias to run command in tmux | `run_in_tmux <CMD>` | Bash/Zsh, Linux/macOS |
+| `tattach` | Attach to tmux session by prefix | `tattach [PREFIX]` | Bash/Zsh, Linux/macOS |
+| `tkill` | Kill tmux sessions by prefix | `tkill [PREFIX]` | Bash/Zsh, Linux/macOS |
 
 #### `run_in_tmux` Details
 
@@ -309,6 +311,40 @@ python.raw --version     # Directly outputs: Python 3.x.x
 # Inside tmux
 python train.py          # Runs directly, no nested tmux
 ```
+
+#### `tattach` Details
+
+Attach to tmux sessions by name prefix. If multiple sessions match, an interactive selection menu is shown.
+
+```bash
+# Attach to session with prefix "myapp"
+tattach myapp
+
+# List all sessions and select one to attach
+tattach
+```
+
+**Behavior:**
+- 0 or 1 session found → directly attach
+- Multiple sessions found → interactive menu (select 1-N)
+- No sessions found → error message
+
+#### `tkill` Details
+
+Kill tmux sessions by name prefix. Always requires confirmation.
+
+```bash
+# Kill sessions with prefix "myapp"
+tkill myapp
+
+# List all sessions and select one to kill
+tkill
+```
+
+**Behavior:**
+- Single session → requires `y/N` confirmation (default: N)
+- Multiple sessions → select specific session, "All sessions", or "Cancel"
+- No sessions found → error message
 
 ## Shell-Specific Implementations
 
