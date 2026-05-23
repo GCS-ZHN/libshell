@@ -158,6 +158,12 @@ $env:LIBSHELL_QUIET = "1"          # Suppress load message
 5. **PowerShell `Write-LogError`**: Returns exit code to pipeline; use `| Out-Null` when calling
 6. **PowerShell `Export-ModuleMember`**: Only works in `.psm1` modules, not dot-sourced scripts
 7. **Heredoc variable expansion**: Use `<< 'EOF'` to prevent expansion, `<< EOF` to allow it
+8. **Version test race condition**: Test files (`test_lib_*.sh`, `test_lib_ps1.ps1`) contain hardcoded version assertions. When releasing:
+   - **Always update test file versions BEFORE creating the git tag**
+   - Otherwise CI runs against the OLD test files before your version bump commit
+   - The tag triggers CI immediately upon push, before test file updates can reach CI
+   - **Solution**: Sequence: (1) update version everywhere, (2) commit, (3) update test files, (4) commit, (5) tag and push
+   - Or use force-push to update the tag after all updates are committed
 
 ## CI/CD
 

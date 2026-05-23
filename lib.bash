@@ -280,6 +280,19 @@ function trun() {
         return $?
     fi
     
+    # Check if tmux is available
+    local hint=$(__libshell_get_install_hint tmux)
+    if ! __libshell_check_cmd tmux "$hint"; then
+        log_err "tmux is not installed, skipping alias creation" ${LIBSHELL_CMD_NOT_FOUND}
+        return $?
+    fi
+    
+    # Check if the command exists
+    if ! command -v "$cmd" >/dev/null; then
+        log_err "Command '$cmd' not found" ${LIBSHELL_CMD_NOT_FOUND}
+        return $?
+    fi
+    
     # Check if the command exists
     if ! command -v "$cmd" >/dev/null; then
         log_err "Command '$cmd' not found" ${LIBSHELL_CMD_NOT_FOUND}
