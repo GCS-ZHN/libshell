@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-05-23
+
+### Changed
+- **`trun`**: Renamed from `run_in_tmux`. The old name is kept as a deprecated alias
+- **`trun`**: Added guard to prevent wrapping `tmux` command (avoid nested sessions)
+
+### Added
+- **`tattach`**: New function to attach to tmux sessions by name prefix
+- **`tkill`**: New function to kill tmux sessions by prefix with interactive confirmation
+- **`tattach`/`tkill`**: Both accept empty prefix to list all sessions
+
+### Deprecated
+- **`run_in_tmux`**: Use `trun` instead. Deprecated alias will warn users to switch
+
 ## [1.2.0] - 2026-05-23
 
 ### Added
@@ -71,7 +85,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README with installation and usage instructions
 - AGENTS.md guidelines for AI coding agents
 
-[Unreleased]: https://github.com/GCS-ZHN/libshell/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/GCS-ZHN/libshell/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.2.1
 [1.2.0]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.2.0
 [1.1.1]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.1.1
 [1.1.0]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.1.0

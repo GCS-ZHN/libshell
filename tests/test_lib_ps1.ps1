@@ -131,7 +131,7 @@ Test-Start "lib.ps1 sets LIBSHELL_PS_LOADED"
 Assert-Equals "1" $env:LIBSHELL_PS_LOADED
 
 Test-Start "LIBSHELL_VERSION is set"
-Assert-Equals "1.2.0" $script:LIBSHELL_VERSION
+Assert-Equals "1.2.1" $script:LIBSHELL_VERSION
 
 Test-Start "Error codes are defined"
 if ($script:LIBSHELL_DEFAULT_OK -eq 0 -and 
