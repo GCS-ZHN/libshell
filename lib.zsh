@@ -295,8 +295,8 @@ function run_in_tmux() {
 
 function tattach() {
     # Attach to a tmux session by prefix
-    if [[ "$#" -ne 1 ]]; then
-        log_err "Usage: tattach <SESSION_PREFIX>" ${LIBSHELL_ARG_ERR}
+    if [[ "$#" -gt 1 ]]; then
+        log_err "Usage: tattach [SESSION_PREFIX]" ${LIBSHELL_ARG_ERR}
         return $?
     fi
 
@@ -336,8 +336,8 @@ function tattach() {
 
 function tkill() {
     # Kill tmux sessions by prefix
-    if [[ "$#" -ne 1 ]]; then
-        log_err "Usage: tkill <SESSION_PREFIX>" ${LIBSHELL_ARG_ERR}
+    if [[ "$#" -gt 1 ]]; then
+        log_err "Usage: tkill [SESSION_PREFIX]" ${LIBSHELL_ARG_ERR}
         return $?
     fi
 
