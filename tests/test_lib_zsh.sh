@@ -120,26 +120,26 @@ prepend_path var_name "/some/path" 2>/dev/null
 assert_equals "$LIBSHELL_ARG_ERR" "$?"
 
 # =============================================================================
-# Test: run_in_tmux function
+# Test: trun function
 # =============================================================================
 
-test_start "run_in_tmux function exists"
-if type run_in_tmux >/dev/null 2>&1; then
+test_start "trun function exists"
+if type trun >/dev/null 2>&1; then
     test_pass
 else
     test_fail "Function not defined"
 fi
 
-test_start "run_in_tmux fails for non-existent command"
-run_in_tmux "nonexistent_cmd_12345" 2>/dev/null
+test_start "trun fails for non-existent command"
+trun "nonexistent_cmd_12345" 2>/dev/null
 assert_equals "$LIBSHELL_CMD_NOT_FOUND" "$?"
 
-test_start "run_in_tmux creates alias for existing command"
+test_start "trun creates alias for existing command"
 if command -v tmux >/dev/null 2>&1; then
     # Unalias if exists
     unalias ls 2>/dev/null || true
     unalias ls.raw 2>/dev/null || true
-    run_in_tmux ls >/dev/null 2>&1
+    trun ls >/dev/null 2>&1
     if alias ls >/dev/null 2>&1; then
         test_pass
         unalias ls 2>/dev/null || true
@@ -151,11 +151,11 @@ else
     test_skip "tmux not installed"
 fi
 
-test_start "run_in_tmux creates .raw alias"
+test_start "trun creates .raw alias"
 if command -v tmux >/dev/null 2>&1; then
     unalias echo 2>/dev/null || true
     unalias echo.raw 2>/dev/null || true
-    run_in_tmux echo >/dev/null 2>&1
+    trun echo >/dev/null 2>&1
     if alias echo.raw >/dev/null 2>&1; then
         test_pass
         unalias echo 2>/dev/null || true

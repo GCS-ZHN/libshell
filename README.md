@@ -137,7 +137,7 @@ source lib.bash
 | `prepend_path` (bash) | `perl` | Usually pre-installed |
 | `port_avail` | `nc` (netcat) | `apt install netcat` / `brew install netcat` |
 | `conda_mv` | `rsync` | `apt install rsync` / `brew install rsync` |
-| `run_in_tmux` | `tmux`, `xxd`* | `apt install tmux` / `brew install tmux` |
+| `run_in_tmux` (deprecated) | `tmux`, `xxd`* | `apt install tmux` / `brew install tmux` |
 | `grant_access`, `get_access` | `setfacl`, `getfacl` | `apt install acl` (Linux only**) |
 
 \* `xxd` is optional; falls back to `$RANDOM` or timestamp if unavailable.
@@ -168,7 +168,7 @@ require_arg MY_VAR || log_err 'MY_VAR not found'
 prepend_path PATH "/usr/local/bin"
 
 # Run command in tmux automatically
-run_in_tmux python
+trun python
 python script.py        # Runs in tmux session
 python.raw --version    # Runs directly without tmux
 ```
@@ -181,7 +181,7 @@ source lib.zsh
 # Same API as Bash
 require_arg MY_VAR || log_err 'MY_VAR not found'
 prepend_path PATH "/usr/local/bin"
-run_in_tmux python
+trun python
 ```
 
 ### PowerShell
@@ -283,11 +283,11 @@ Write-LogInfo "Information message"
 
 | Function | Description | Usage | Support |
 |----------|-------------|-------|---------|
-| `run_in_tmux` | Create alias to run command in tmux | `run_in_tmux <CMD>` | Bash/Zsh, Linux/macOS |
+| `trun` | Create alias to run command in tmux | `trun <CMD>` | Bash/Zsh, Linux/macOS |
 | `tattach` | Attach to tmux session by prefix | `tattach [PREFIX]` | Bash/Zsh, Linux/macOS |
 | `tkill` | Kill tmux sessions by prefix | `tkill [PREFIX]` | Bash/Zsh, Linux/macOS |
 
-#### `run_in_tmux` Details
+#### `trun` Details
 
 This function creates two aliases for a command:
 
@@ -296,9 +296,11 @@ This function creates two aliases for a command:
 
 **Smart Detection**: If already inside tmux, commands run directly without creating nested sessions.
 
+**Note**: Cannot wrap `tmux` itself to avoid nested tmux sessions.
+
 ```bash
 # Setup
-run_in_tmux python
+trun python
 # Output:
 # Created aliases:
 #   python     -> auto tmux wrapper (detects nested tmux)
@@ -376,7 +378,7 @@ Some functions require different implementations due to Bash/Zsh syntax differen
 - `${(@s/:/)str}` - Split string by `:` into array (`@` preserves empty elements)
 - `${arr[(Ie)pattern]}` - Reverse exact search in array, returns index (0 = not found)
 
-### 4. `run_in_tmux` - Create tmux wrapper alias
+### 4. `trun` - Create tmux wrapper alias
 
 | Shell | Implementation | Key Feature |
 |-------|---------------|-------------|
@@ -451,8 +453,8 @@ TEST_VERBOSE=1 ./tests/run_tests.sh
 | Module | Functions Tested | Coverage |
 |--------|------------------|----------|
 | **common.sh** | `log_err`, `real_dir`, `real_file`, `permission2int`, `int2permission`, `is_user_exist`, `create_link`, `__run_in_tmux_wrapper` | Core utilities |
-| **lib.bash** | `is_source`, `require_arg`, `prepend_path`, `run_in_tmux`, `sbat`, `sque` + function exports | Bash-specific |
-| **lib.zsh** | `is_source`, `require_arg`, `prepend_path`, `run_in_tmux` + common function availability | Zsh-specific |
+| **lib.bash** | `is_source`, `require_arg`, `prepend_path`, `trun`, `sbat`, `sque` + function exports | Bash-specific |
+| **lib.zsh** | `is_source`, `require_arg`, `prepend_path`, `trun` + common function availability | Zsh-specific |
 
 **Test Categories:**
 - **Constant definitions** - Error codes properly defined
@@ -460,7 +462,7 @@ TEST_VERBOSE=1 ./tests/run_tests.sh
 - **Return codes** - Functions return correct exit codes
 - **Output verification** - Functions produce expected output
 - **Edge cases** - Empty variables, non-existent paths, duplicate paths
-- **Alias creation** - `run_in_tmux` creates both `<cmd>` and `<cmd>.raw` aliases
+- **Alias creation** - `trun` creates both `<cmd>` and `<cmd>.raw` aliases
 
 **Not Covered (require manual testing):**
 - `conda_mv` - Requires conda environment

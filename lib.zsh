@@ -275,6 +275,11 @@ function trun() {
 
     local cmd=$1
     
+    if [[ "$cmd" == "tmux" ]]; then
+        log_err "Cannot wrap 'tmux' command to avoid nested tmux sessions" ${LIBSHELL_ARG_ERR}
+        return $?
+    fi
+    
     # Check if the command exists
     if ! command -v "$cmd" >/dev/null; then
         log_err "Command '$cmd' not found" ${LIBSHELL_CMD_NOT_FOUND}

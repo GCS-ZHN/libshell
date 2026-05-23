@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `permission2int` / `int2permission` - Permission conversion
   - `is_user_exist` - User existence check
   - `prepend_path` - PATH manipulation
-  - `run_in_tmux` - Run commands in tmux sessions
+  - `trun` - Run commands in tmux sessions (renamed from `run_in_tmux`)
   - `sbat` / `sque` - Slurm batch job utilities
 
 ### Fixed
