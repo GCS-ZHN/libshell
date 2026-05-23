@@ -355,7 +355,7 @@ function tkill() {
     fi
 
     if [ ${#sessions[@]} -eq 1 ]; then
-        echo "Kill session '${sessions[0]}'? (y/n)"
+        echo "Kill session '${sessions[0]}'? (y/N)"
         read -r confirm
         if [ "$confirm" = "y" ]; then
             tmux kill-session -t "${sessions[0]}"
