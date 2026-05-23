@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-23
+
+### Added
+- **`tattach`**: New function to attach to tmux sessions by name prefix. If only one session matches, attach directly; if multiple, show interactive selection menu
+- **`tkill`**: New function to kill tmux sessions by name prefix. Supports interactive confirmation with options to kill specific session, all matching sessions, or cancel
+- **`tattach`/`tkill`**: Both functions now accept empty prefix to list all available sessions
+
 ## [1.1.1] - 2026-04-28
 
 ### Fixed
@@ -64,7 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README with installation and usage instructions
 - AGENTS.md guidelines for AI coding agents
 
-[Unreleased]: https://github.com/GCS-ZHN/libshell/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/GCS-ZHN/libshell/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.2.0
 [1.1.1]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.1.1
 [1.1.0]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.1.0
 [1.0.2]: https://github.com/GCS-ZHN/libshell/releases/tag/v1.0.2

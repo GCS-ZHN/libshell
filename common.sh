@@ -11,7 +11,7 @@ LIBSHELL_COMMON_LOADED=1
 # =============================================================================
 # Constants / Error Codes
 # =============================================================================
-export LIBSHELL_VERSION=1.1.1
+export LIBSHELL_VERSION=1.2.0
 
 LIBSHELL_DEFAULT_OK=0
 LIBSHELL_DEFAULT_ERR=1
