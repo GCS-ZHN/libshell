@@ -390,6 +390,19 @@ function tkill() {
 
 
 # =============================================================================
+# Tmux Deprecated Functions
+# =============================================================================
+
+function old_tmux_attach() {
+    __libshell_deprecated old_tmux_attach tattach "$@"
+}
+
+function old_tmux_kill() {
+    __libshell_deprecated old_tmux_kill tkill "$@"
+}
+
+
+# =============================================================================
 # Initialization Message
 # =============================================================================
 if is_source; then

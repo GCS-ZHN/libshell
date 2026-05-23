@@ -408,6 +408,22 @@ export -f __run_in_tmux_wrapper
 export -f __libshell_check_cmd
 export -f __libshell_get_install_hint
 export -f __libshell_require_cmd
+export -f __libshell_deprecated
+
+
+# =============================================================================
+# Tmux Deprecated Functions
+# =============================================================================
+
+function old_tmux_attach() {
+    __libshell_deprecated old_tmux_attach tattach "$@"
+}
+export -f old_tmux_attach
+
+function old_tmux_kill() {
+    __libshell_deprecated old_tmux_kill tkill "$@"
+}
+export -f old_tmux_kill
 
 
 # =============================================================================

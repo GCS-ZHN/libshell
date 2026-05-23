@@ -432,6 +432,17 @@ __run_in_tmux_wrapper() {
 }
 
 # =============================================================================
+# Deprecation Helper (POSIX compatible)
+# =============================================================================
+__libshell_deprecated() {
+    local old_func=$1
+    local new_func=$2
+    echo -e "\033[33m[libshell] Warning: '${old_func}' is deprecated. Please use '${new_func}' instead.\033[0m" >&2
+    shift 2
+    $new_func "$@"
+}
+
+# =============================================================================
 # Initialization
 # =============================================================================
 # Check optional dependencies (only show warning once)
